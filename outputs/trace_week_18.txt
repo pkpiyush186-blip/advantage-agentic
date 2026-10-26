@@ -1,0 +1,103 @@
+==============================================================================
+DECISION TRACE - AD-018, week 18  [executed]
+==============================================================================
+
+[2026-05-04T09:00:00]  S1   decision
+    Weekly cycle opened for week 18 (scheduled trigger, Monday 09:00).
+
+[2026-05-04T09:03:00]  S1   tool:performance_db
+    pulled week 17 for 3 channels; no feed from amazon
+    detail: {'reported_week': 17, 'missing': ['amazon']}
+
+[2026-05-04T09:06:00]  S2   tool:policy_kb
+    retrieved rulebook v1.0: 15%-55% per channel, 15 pp weekly cap, brand rules active: BR02
+    detail: {'active_brand_rules': ['BR02']}
+
+[2026-05-04T09:09:00]  S2   tool:anomaly_checker
+    1 anomaly flag(s)
+    detail: [{'channel': 'amazon', 'type': 'missing_feed', 'severity': 'high', 'detail': 'No data feed from amazon for week 17.', 'exception': 'E2'}]
+
+[2026-05-04T09:12:00]  D1   decision
+    D1 = exception. 1 flag(s): No data feed from amazon for week 17.
+
+[2026-05-04T09:15:00]  EXC  decision
+    Exception path taken.
+    detail: ['E2: No data feed from amazon for week 17. Using the last valid week for amazon. Case marked degraded, weekly shift cap reduced from 15 pp to 8 pp. Feed retry queued for 2026-05-05T09:00:00.']
+
+[2026-05-04T09:18:00]  EXC  tool:notifier
+    notified marketing.manager@advantage.example: [AD-018] Week 18: anomaly detected
+    detail: {'body': 'E2: No data feed from amazon for week 17. Using the last valid week for amazon. Case marked degraded, weekly shift cap reduced from 15 pp to 8 pp. Feed retry queued for 2026-05-05T09:00:00.'}
+
+[2026-05-04T09:21:00]  S3   tool:allocator
+    Thompson Sampling proposed google 68%, meta 14%, amazon 18%
+    detail: {'sampled_per_lakh': {'google': 210.1, 'meta': 125.5, 'amazon': 135.0}, 'posterior_mean': {'google': 210.5, 'meta': 131.7, 'amazon': 150.0}}
+
+[2026-05-04T09:24:00]  S4   tool:constraint_calculator
+    4 violation(s), trimmed to google 55%, meta 25%, amazon 20%
+    detail: {'violations': ['google at 67.6% exceeds the 55% ceiling.', 'google moves 12.6 pp this week, above the 7.5 pp cap.', 'meta at 14.4% is below the 15% floor.', 'meta moves 13.9 pp this week, above the 7.5 pp cap.'], 'notes': ['google trimmed by -12.6 pp to satisfy hard_limits, BR02, degraded_mode, wee
+
+[2026-05-04T09:27:00]  D2   decision
+    D2 = trimmed and re-checked, now compliant (E3). google trimmed by -12.6 pp to satisfy hard_limits, BR02, degraded_mode, weekly_shift_cap. meta trimmed by +10.8 pp to satisfy hard_limits, BR02, degraded_mode, weekly_shift_cap. amazon trimmed by +1.8 pp to satisfy hard_limits, BR02, degraded_mode, weekly_shift_cap.
+
+[2026-05-04T09:30:00]  S5   tool:notifier
+    notified marketing.manager@advantage.example: [AD-018] Week 18: approval needed (3.1 pp shift)
+    detail: {'body': 'Week 18 budget recommendation (AD-018)\n\nTotal for the week: Rs 1,150,000\n\nProposed split:\n  google   55.0% -> 55.0% (+0.0 pp)   recent performance 211 conversions per lakh\n  meta     28.3% -> 25.2% (-3.1 pp)   recent performance 132 conversions per lakh\n  amazon   16.7% -> 19.8% (+3
+
+[2026-05-04T09:33:00]  S5   decision
+    D3 = human (route approve) because anomaly flagged on amazon; proposal was trimmed by the guardrail agent; the week is running on stale or incomplete data
+
+[2026-05-04T09:36:00]  S5   decision
+    Manager decision: approve.
+    detail: {'action': 'approve'}
+
+[2026-05-04T09:39:00]  S6   tool:budget_api
+    executed google 55%, meta 25%, amazon 20%
+    detail: {'case_id': 'AD-018', 'week': 18, 'at': '2026-05-04T11:00:00', 'allocation': {'google': 0.55, 'meta': 0.252287, 'amazon': 0.197713}, 'amounts_inr': {'google': 632500.0, 'meta': 290130.05, 'amazon': 227369.95}, 'reference': 'BUDGET-018'}
+
+[2026-05-04T09:42:00]  S6   decision
+    Executed after manager approval.
+
+[2026-05-04T09:45:00]  S7   tool:audit_logger
+    Case closed as executed.
+    detail: {'status': 'executed', 'replans': 0}
+
+------------------------------------------------------------------------------
+MANAGER BRIEF AS SENT
+------------------------------------------------------------------------------
+
+Week 18 budget recommendation (AD-018)
+
+Total for the week: Rs 1,150,000
+
+Proposed split:
+  google   55.0% -> 55.0% (+0.0 pp)   recent performance 211 conversions per lakh
+  meta     28.3% -> 25.2% (-3.1 pp)   recent performance 132 conversions per lakh
+  amazon   16.7% -> 19.8% (+3.1 pp)   recent performance 150 conversions per lakh
+
+Largest move: 3.1 pp (auto-execute threshold is 5 pp).
+
+Flagged this week:
+  - No data feed from amazon for week 17.
+
+Guardrail adjustments:
+  - google trimmed by -12.6 pp to satisfy hard_limits, BR02, degraded_mode, weekly_shift_cap.
+  - meta trimmed by +10.8 pp to satisfy hard_limits, BR02, degraded_mode, weekly_shift_cap.
+  - amazon trimmed by +1.8 pp to satisfy hard_limits, BR02, degraded_mode, weekly_shift_cap.
+
+Why this needs your approval:
+  - anomaly flagged on amazon
+  - proposal was trimmed by the guardrail agent
+  - the week is running on stale or incomplete data
+
+Reply approve / modify / reject within 48h, after which this escalates to Senior Marketing Head and the current split is held.
+
+------------------------------------------------------------------------------
+WEEKLY REPORT
+------------------------------------------------------------------------------
+
+Week 18 (AD-018) - executed
+Allocation: google 55% -> 55%, meta 28% -> 25%, amazon 17% -> 20%
+Anomalies: No data feed from amazon for week 17.
+Guardrail: google trimmed by -12.6 pp to satisfy hard_limits, BR02, degraded_mode, weekly_shift_cap. meta trimmed by +10.8 pp to satisfy hard_limits, BR02, degraded_mode, weekly_shift_cap. amazon trimmed by +1.8 pp to satisfy hard_limits, BR02, degraded_mode, weekly_shift_cap.
+Approval: anomaly flagged on amazon; proposal was trimmed by the guardrail agent; the week is running on stale or incomplete data
+Escalations: E2: No data feed from amazon for week 17. Using the last valid week for amazon. Case marked degraded, weekly shift cap reduced from 15 pp to 8 pp. Feed retry queued for 2026-05-05T09:00:00.

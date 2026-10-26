@@ -1,0 +1,81 @@
+==============================================================================
+DECISION TRACE - AD-001, week 1  [executed]
+==============================================================================
+
+[2026-01-05T09:00:00]  S1   decision
+    Weekly cycle opened for week 1 (scheduled trigger, Monday 09:00).
+
+[2026-01-05T09:03:00]  S1   tool:performance_db
+    pulled week 0 for 0 channels
+    detail: {'reported_week': 0, 'missing': []}
+
+[2026-01-05T09:06:00]  S2   tool:policy_kb
+    retrieved rulebook v1.0: 15%-55% per channel, 15 pp weekly cap, brand rules active: BR02
+    detail: {'active_brand_rules': ['BR02']}
+
+[2026-01-05T09:09:00]  S2   tool:anomaly_checker
+    no anomalies
+
+[2026-01-05T09:12:00]  D1   decision
+    D1 = clean week, proceeding to propose.
+
+[2026-01-05T09:15:00]  S3   tool:allocator
+    Thompson Sampling proposed google 36%, meta 33%, amazon 31%
+    detail: {'sampled_per_lakh': {'google': 149.4, 'meta': 144.6, 'amazon': 141.6}, 'posterior_mean': {'google': 150.0, 'meta': 150.0, 'amazon': 150.0}}
+
+[2026-01-05T09:18:00]  S4   tool:constraint_calculator
+    proposal already compliant
+    detail: {'violations': [], 'notes': [], 'feasible': True, 'pinned': {}, 'caps': {}}
+
+[2026-01-05T09:21:00]  D2   decision
+    D2 = compliant, no trim needed.
+
+[2026-01-05T09:24:00]  S5   tool:notifier
+    notified marketing.manager@advantage.example: [AD-001] Week 1: approval needed (5.9 pp shift)
+    detail: {'body': 'Week 1 budget recommendation (AD-001)\n\nTotal for the week: Rs 1,150,000\n\nProposed split:\n  google   40.0% -> 36.2% (-3.8 pp)   recent performance 150 conversions per lakh\n  meta     35.0% -> 32.9% (-2.1 pp)   recent performance 150 conversions per lakh\n  amazon   25.0% -> 30.9% (+5.
+
+[2026-01-05T09:27:00]  S5   decision
+    D3 = human (route approve) because largest shift 5.9 pp is above the 5 pp auto-execute threshold
+
+[2026-01-05T09:30:00]  S5   decision
+    Manager decision: approve.
+    detail: {'action': 'approve'}
+
+[2026-01-05T09:33:00]  S6   tool:budget_api
+    executed google 36%, meta 33%, amazon 31%
+    detail: {'case_id': 'AD-001', 'week': 1, 'at': '2026-01-05T11:00:00', 'allocation': {'google': 0.362217, 'meta': 0.329025, 'amazon': 0.308759}, 'amounts_inr': {'google': 416549.55, 'meta': 378378.75, 'amazon': 355072.85}, 'reference': 'BUDGET-001'}
+
+[2026-01-05T09:36:00]  S6   decision
+    Executed after manager approval.
+
+[2026-01-05T09:39:00]  S7   tool:audit_logger
+    Case closed as executed.
+    detail: {'status': 'executed', 'replans': 0}
+
+------------------------------------------------------------------------------
+MANAGER BRIEF AS SENT
+------------------------------------------------------------------------------
+
+Week 1 budget recommendation (AD-001)
+
+Total for the week: Rs 1,150,000
+
+Proposed split:
+  google   40.0% -> 36.2% (-3.8 pp)   recent performance 150 conversions per lakh
+  meta     35.0% -> 32.9% (-2.1 pp)   recent performance 150 conversions per lakh
+  amazon   25.0% -> 30.9% (+5.9 pp)   recent performance 150 conversions per lakh
+
+Largest move: 5.9 pp (auto-execute threshold is 5 pp).
+
+Why this needs your approval:
+  - largest shift 5.9 pp is above the 5 pp auto-execute threshold
+
+Reply approve / modify / reject within 48h, after which this escalates to Senior Marketing Head and the current split is held.
+
+------------------------------------------------------------------------------
+WEEKLY REPORT
+------------------------------------------------------------------------------
+
+Week 1 (AD-001) - executed
+Allocation: google 40% -> 36%, meta 35% -> 33%, amazon 25% -> 31%
+Approval: largest shift 5.9 pp is above the 5 pp auto-execute threshold

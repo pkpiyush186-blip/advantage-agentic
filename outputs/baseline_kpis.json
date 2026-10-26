@@ -1,0 +1,255 @@
+{
+  "world": {
+    "weeks": 26,
+    "channels": [
+      "google",
+      "meta",
+      "amazon"
+    ],
+    "weekly_budget_inr": 1150000.0,
+    "initial_judgment_split": {
+      "google": 0.4,
+      "meta": 0.35,
+      "amazon": 0.25
+    },
+    "manager_inertia": 0.5
+  },
+  "outcome_kpis": {
+    "static_split": {
+      "weeks": 26,
+      "total_spend_inr": 29900000.0,
+      "total_conversions": 43361,
+      "total_revenue_inr": 92186021.99,
+      "conversions_per_rupee": 0.0014502,
+      "cost_per_conversion_inr": 689.56,
+      "roas": 3.0831,
+      "conversions_per_lakh": 145.02
+    },
+    "monthly_manual": {
+      "weeks": 26,
+      "total_spend_inr": 29900000.0,
+      "total_conversions": 43528,
+      "total_revenue_inr": 91184615.53,
+      "conversions_per_rupee": 0.00145579,
+      "cost_per_conversion_inr": 686.91,
+      "roas": 3.0497,
+      "conversions_per_lakh": 145.58
+    },
+    "oracle": {
+      "weeks": 26,
+      "total_spend_inr": 29900000.0,
+      "total_conversions": 49043,
+      "total_revenue_inr": 102093808.21,
+      "conversions_per_rupee": 0.00164023,
+      "cost_per_conversion_inr": 609.67,
+      "roas": 3.4145,
+      "conversions_per_lakh": 164.02
+    }
+  },
+  "comparisons": {
+    "monthly_manual_vs_static": {
+      "baseline_label": "static_split",
+      "variant_label": "monthly_manual",
+      "conversions_per_rupee": {
+        "baseline": 0.0014502,
+        "variant": 0.00145579,
+        "delta_pct": 0.39
+      },
+      "total_conversions": {
+        "baseline": 43361,
+        "variant": 43528,
+        "delta_pct": 0.39
+      },
+      "total_revenue_inr": {
+        "baseline": 92186021.99,
+        "variant": 91184615.53,
+        "delta_pct": -1.09
+      },
+      "roas": {
+        "baseline": 3.0831,
+        "variant": 3.0497,
+        "delta_pct": -1.08
+      },
+      "cost_per_conversion_inr": {
+        "baseline": 689.56,
+        "variant": 686.91,
+        "delta_pct": -0.38
+      }
+    },
+    "oracle_vs_monthly_manual": {
+      "baseline_label": "monthly_manual",
+      "variant_label": "oracle",
+      "conversions_per_rupee": {
+        "baseline": 0.00145579,
+        "variant": 0.00164023,
+        "delta_pct": 12.67
+      },
+      "total_conversions": {
+        "baseline": 43528,
+        "variant": 49043,
+        "delta_pct": 12.67
+      },
+      "total_revenue_inr": {
+        "baseline": 91184615.53,
+        "variant": 102093808.21,
+        "delta_pct": 11.96
+      },
+      "roas": {
+        "baseline": 3.0497,
+        "variant": 3.4145,
+        "delta_pct": 11.96
+      },
+      "cost_per_conversion_inr": {
+        "baseline": 686.91,
+        "variant": 609.67,
+        "delta_pct": -11.24
+      }
+    }
+  },
+  "primary_baseline": "monthly_manual",
+  "headroom_above_baseline_pct": 12.67,
+  "as_is_process_kpis": {
+    "label": "As-Is (manual, monthly reallocation)",
+    "reallocation_frequency_per_month": 1.0,
+    "mean_detection_lag_days": 15.0,
+    "manager_hours_per_cycle": 8.0,
+    "human_touchpoints_per_cycle": 5.0,
+    "stp_rate": 0.0,
+    "escalation_rate": 0.0,
+    "guardrail_breaches_executed": -1,
+    "cycles_in_horizon": 6,
+    "blended_hourly_rate_inr": 500.0,
+    "estimated": true,
+    "note": "Estimates for the fictional case (proposal Section 6). Escalations are not tracked and compliance is not systematically checked in the As-Is process.",
+    "cost_per_cycle_inr": 4000.0,
+    "total_process_cost_inr": 24000.0
+  },
+  "manual_review_decisions": [
+    {
+      "week": 5,
+      "action": "monthly_review",
+      "lookback_weeks": 4,
+      "implied": {
+        "google": 0.4172,
+        "meta": 0.3849,
+        "amazon": 0.1979
+      },
+      "from": {
+        "google": 0.4,
+        "meta": 0.35,
+        "amazon": 0.25
+      },
+      "to": {
+        "google": 0.4086,
+        "meta": 0.367466,
+        "amazon": 0.223935
+      },
+      "notes": []
+    },
+    {
+      "week": 9,
+      "action": "monthly_review",
+      "lookback_weeks": 4,
+      "implied": {
+        "google": 0.3325,
+        "meta": 0.2148,
+        "amazon": 0.4527
+      },
+      "from": {
+        "google": 0.4086,
+        "meta": 0.367466,
+        "amazon": 0.223935
+      },
+      "to": {
+        "google": 0.370561,
+        "meta": 0.291122,
+        "amazon": 0.338318
+      },
+      "notes": []
+    },
+    {
+      "week": 13,
+      "action": "monthly_review",
+      "lookback_weeks": 4,
+      "implied": {
+        "google": 0.1758,
+        "meta": 0.392,
+        "amazon": 0.4323
+      },
+      "from": {
+        "google": 0.370561,
+        "meta": 0.291122,
+        "amazon": 0.338318
+      },
+      "to": {
+        "google": 0.273156,
+        "meta": 0.341559,
+        "amazon": 0.385285
+      },
+      "notes": []
+    },
+    {
+      "week": 17,
+      "action": "monthly_review",
+      "lookback_weeks": 4,
+      "implied": {
+        "google": 0.4211,
+        "meta": 0.3335,
+        "amazon": 0.2454
+      },
+      "from": {
+        "google": 0.273156,
+        "meta": 0.341559,
+        "amazon": 0.385285
+      },
+      "to": {
+        "google": 0.347142,
+        "meta": 0.337505,
+        "amazon": 0.315354
+      },
+      "notes": []
+    },
+    {
+      "week": 21,
+      "action": "monthly_review",
+      "lookback_weeks": 4,
+      "implied": {
+        "google": 0.4247,
+        "meta": 0.2081,
+        "amazon": 0.3673
+      },
+      "from": {
+        "google": 0.347142,
+        "meta": 0.337505,
+        "amazon": 0.315354
+      },
+      "to": {
+        "google": 0.385918,
+        "meta": 0.272779,
+        "amazon": 0.341303
+      },
+      "notes": []
+    },
+    {
+      "week": 25,
+      "action": "monthly_review",
+      "lookback_weeks": 4,
+      "implied": {
+        "google": 0.2092,
+        "meta": 0.3232,
+        "amazon": 0.4676
+      },
+      "from": {
+        "google": 0.385918,
+        "meta": 0.272779,
+        "amazon": 0.341303
+      },
+      "to": {
+        "google": 0.297564,
+        "meta": 0.297979,
+        "amazon": 0.404457
+      },
+      "notes": []
+    }
+  ]
+}

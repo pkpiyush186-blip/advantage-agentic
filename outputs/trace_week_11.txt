@@ -1,0 +1,114 @@
+==============================================================================
+DECISION TRACE - AD-011, week 11  [executed]
+==============================================================================
+
+[2026-03-16T09:00:00]  S1   decision
+    Weekly cycle opened for week 11 (scheduled trigger, Monday 09:00).
+
+[2026-03-16T09:03:00]  S1   tool:performance_db
+    pulled week 10 for 3 channels
+    detail: {'reported_week': 10, 'missing': []}
+
+[2026-03-16T09:06:00]  S2   tool:policy_kb
+    retrieved rulebook v1.0: 15%-55% per channel, 15 pp weekly cap, brand rules active: BR02
+    detail: {'active_brand_rules': ['BR02']}
+
+[2026-03-16T09:09:00]  S2   tool:anomaly_checker
+    no anomalies
+
+[2026-03-16T09:12:00]  D1   decision
+    D1 = clean week, proceeding to propose.
+
+[2026-03-16T09:15:00]  S3   tool:allocator
+    Thompson Sampling proposed google 5%, meta 41%, amazon 54%
+    detail: {'sampled_per_lakh': {'google': 92.1, 'meta': 185.3, 'amazon': 203.2}, 'posterior_mean': {'google': 93.2, 'meta': 177.0, 'amazon': 207.8}}
+
+[2026-03-16T09:18:00]  S4   tool:constraint_calculator
+    4 violation(s), trimmed to google 15%, meta 37%, amazon 48%
+    detail: {'violations': ['google at 5.0% is below the 15% floor.', 'google moves 20.4 pp this week, above the 15.0 pp cap.', 'meta moves 16.4 pp this week, above the 15.0 pp cap.', 'BR02: amazon at 54.0% exceeds the 50% brand cap.'], 'notes': ['google trimmed by +10.0 pp to satisfy hard_limits, BR02, weekly_
+
+[2026-03-16T09:21:00]  D2   decision
+    D2 = trimmed and re-checked, now compliant (E3). google trimmed by +10.0 pp to satisfy hard_limits, BR02, weekly_shift_cap. meta trimmed by -4.2 pp to satisfy hard_limits, BR02, weekly_shift_cap. amazon trimmed by -5.7 pp to satisfy hard_limits, BR02, weekly_shift_cap.
+
+[2026-03-16T09:24:00]  S5   tool:notifier
+    notified marketing.manager@advantage.example: [AD-011] Week 11: approval needed (12.2 pp shift)
+    detail: {'body': 'Week 11 budget recommendation (AD-011)\n\nTotal for the week: Rs 1,150,000\n\nProposed split:\n  google   25.4% -> 15.0% (-10.4 pp)   recent performance 93 conversions per lakh\n  meta     24.6% -> 36.7% (+12.1 pp)   recent performance 177 conversions per lakh\n  amazon   50.0% -> 48.3% (-
+
+[2026-03-16T09:27:00]  S5   decision
+    D3 = human (route approve) because largest shift 12.1 pp is above the 5 pp auto-execute threshold; proposal was trimmed by the guardrail agent
+
+[2026-03-16T09:30:00]  S5   decision
+    Manager decision: reject. Too aggressive ahead of the campaign launch.
+    detail: {'action': 'reject', 'note': 'Too aggressive ahead of the campaign launch.'}
+
+[2026-03-16T09:33:00]  E4   decision
+    E4: manager reject. Override logged and fed back as a constraint; re-planning S3-S5 (attempt 1 of 2).
+
+[2026-03-16T09:36:00]  S3   tool:allocator
+    Thompson Sampling proposed google 15%, meta 30%, amazon 56% (anchored 50% to a manager override)
+    detail: {'sampled_per_lakh': {'google': 83.1, 'meta': 176.2, 'amazon': 211.8}, 'posterior_mean': {'google': 93.2, 'meta': 177.0, 'amazon': 207.8}}
+
+[2026-03-16T09:39:00]  S4   tool:constraint_calculator
+    3 violation(s), trimmed to google 19%, meta 31%, amazon 50%
+    detail: {'violations': ['google at 14.6% is below the 15% floor.', 'amazon at 55.6% exceeds the 55% ceiling.', 'BR02: amazon at 55.6% exceeds the 50% brand cap.'], 'notes': ['google trimmed by +4.2 pp to satisfy hard_limits, BR02, weekly_shift_cap.', 'meta trimmed by +1.4 pp to satisfy hard_limits, BR02, we
+
+[2026-03-16T09:42:00]  D2   decision
+    D2 = trimmed and re-checked, now compliant (E3). google trimmed by +4.2 pp to satisfy hard_limits, BR02, weekly_shift_cap. meta trimmed by +1.4 pp to satisfy hard_limits, BR02, weekly_shift_cap. amazon trimmed by -5.6 pp to satisfy hard_limits, BR02, weekly_shift_cap.
+
+[2026-03-16T09:45:00]  S5   tool:notifier
+    notified marketing.manager@advantage.example: [AD-011] Week 11: approval needed (6.7 pp shift)
+    detail: {'body': 'Week 11 budget recommendation (AD-011)\n\nTotal for the week: Rs 1,150,000\n\nProposed split:\n  google   25.4% -> 18.7% (-6.7 pp)   recent performance 93 conversions per lakh\n  meta     24.6% -> 31.3% (+6.7 pp)   recent performance 177 conversions per lakh\n  amazon   50.0% -> 50.0% (+0.
+
+[2026-03-16T09:48:00]  S5   decision
+    D3 = human (route approve) because largest shift 6.7 pp is above the 5 pp auto-execute threshold; proposal was trimmed by the guardrail agent; the manager has already overridden this cycle, so the revised proposal goes back to them rather than auto-executing
+
+[2026-03-16T09:51:00]  S5   decision
+    Manager decision: approve. revised proposal accepted after override
+    detail: {'action': 'approve', 'note': 'revised proposal accepted after override'}
+
+[2026-03-16T09:54:00]  S6   tool:budget_api
+    executed google 19%, meta 31%, amazon 50%
+    detail: {'case_id': 'AD-011', 'week': 11, 'at': '2026-03-16T11:00:00', 'allocation': {'google': 0.187007, 'meta': 0.312993, 'amazon': 0.5}, 'amounts_inr': {'google': 215058.05, 'meta': 359941.95, 'amazon': 575000.0}, 'reference': 'BUDGET-011'}
+
+[2026-03-16T09:57:00]  S6   decision
+    Executed after manager approval.
+
+[2026-03-16T10:00:00]  S7   tool:audit_logger
+    Case closed as executed.
+    detail: {'status': 'executed', 'replans': 1}
+
+------------------------------------------------------------------------------
+MANAGER BRIEF AS SENT
+------------------------------------------------------------------------------
+
+Week 11 budget recommendation (AD-011)
+
+Total for the week: Rs 1,150,000
+
+Proposed split:
+  google   25.4% -> 18.7% (-6.7 pp)   recent performance 93 conversions per lakh
+  meta     24.6% -> 31.3% (+6.7 pp)   recent performance 177 conversions per lakh
+  amazon   50.0% -> 50.0% (+0.0 pp)   recent performance 208 conversions per lakh
+
+Largest move: 6.7 pp (auto-execute threshold is 5 pp).
+
+Guardrail adjustments:
+  - google trimmed by +4.2 pp to satisfy hard_limits, BR02, weekly_shift_cap.
+  - meta trimmed by +1.4 pp to satisfy hard_limits, BR02, weekly_shift_cap.
+  - amazon trimmed by -5.6 pp to satisfy hard_limits, BR02, weekly_shift_cap.
+
+Why this needs your approval:
+  - largest shift 6.7 pp is above the 5 pp auto-execute threshold
+  - proposal was trimmed by the guardrail agent
+  - the manager has already overridden this cycle, so the revised proposal goes back to them rather than auto-executing
+
+Reply approve / modify / reject within 48h, after which this escalates to Senior Marketing Head and the current split is held.
+
+------------------------------------------------------------------------------
+WEEKLY REPORT
+------------------------------------------------------------------------------
+
+Week 11 (AD-011) - executed
+Allocation: google 25% -> 19%, meta 25% -> 31%, amazon 50% -> 50%
+Guardrail: google trimmed by +4.2 pp to satisfy hard_limits, BR02, weekly_shift_cap. meta trimmed by +1.4 pp to satisfy hard_limits, BR02, weekly_shift_cap. amazon trimmed by -5.6 pp to satisfy hard_limits, BR02, weekly_shift_cap.
+Approval: largest shift 6.7 pp is above the 5 pp auto-execute threshold; proposal was trimmed by the guardrail agent; the manager has already overridden this cycle, so the revised proposal goes back to them rather than auto-executing

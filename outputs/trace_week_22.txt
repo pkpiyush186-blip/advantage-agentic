@@ -1,0 +1,95 @@
+==============================================================================
+DECISION TRACE - AD-022, week 22  [held]
+==============================================================================
+
+[2026-06-01T09:00:00]  S1   decision
+    Weekly cycle opened for week 22 (scheduled trigger, Monday 09:00).
+
+[2026-06-01T09:03:00]  S1   tool:performance_db
+    pulled week 21 for 3 channels
+    detail: {'reported_week': 21, 'missing': []}
+
+[2026-06-01T09:06:00]  S2   tool:policy_kb
+    retrieved rulebook v1.0: 15%-55% per channel, 15 pp weekly cap, brand rules active: BR02
+    detail: {'active_brand_rules': ['BR02']}
+
+[2026-06-01T09:09:00]  S2   tool:anomaly_checker
+    no anomalies
+
+[2026-06-01T09:12:00]  D1   decision
+    D1 = clean week, proceeding to propose.
+
+[2026-06-01T09:15:00]  S3   tool:allocator
+    Thompson Sampling proposed google 24%, meta 14%, amazon 62%
+    detail: {'sampled_per_lakh': {'google': 143.5, 'meta': 121.2, 'amazon': 198.5}, 'posterior_mean': {'google': 145.1, 'meta': 128.2, 'amazon': 201.6}}
+
+[2026-06-01T09:18:00]  S4   tool:constraint_calculator
+    3 violation(s), trimmed to google 30%, meta 20%, amazon 50%
+    detail: {'violations': ['meta at 14.2% is below the 15% floor.', 'amazon at 62.3% exceeds the 55% ceiling.', 'BR02: amazon at 62.3% exceeds the 50% brand cap.'], 'notes': ['google trimmed by +6.6 pp to satisfy hard_limits, BR02, weekly_shift_cap.', 'meta trimmed by +5.7 pp to satisfy hard_limits, BR02, week
+
+[2026-06-01T09:21:00]  D2   decision
+    D2 = trimmed and re-checked, now compliant (E3). google trimmed by +6.6 pp to satisfy hard_limits, BR02, weekly_shift_cap. meta trimmed by +5.7 pp to satisfy hard_limits, BR02, weekly_shift_cap. amazon trimmed by -12.3 pp to satisfy hard_limits, BR02, weekly_shift_cap.
+
+[2026-06-01T09:24:00]  S5   tool:notifier
+    notified marketing.manager@advantage.example: [AD-022] Week 22: approval needed (2.3 pp shift)
+    detail: {'body': 'Week 22 budget recommendation (AD-022)\n\nTotal for the week: Rs 1,150,000\n\nProposed split:\n  google   32.4% -> 30.1% (-2.3 pp)   recent performance 145 conversions per lakh\n  meta     17.6% -> 19.9% (+2.3 pp)   recent performance 128 conversions per lakh\n  amazon   50.0% -> 50.0% (+0
+
+[2026-06-01T09:27:00]  S5   decision
+    D3 = human (route approve) because proposal was trimmed by the guardrail agent
+
+[2026-06-01T09:30:00]  S5   decision
+    Manager decision: timeout. (no response within the SLA)
+    detail: {'action': 'timeout', 'note': '(no response within the SLA)'}
+
+[2026-06-01T09:33:00]  E5   tool:notifier
+    notified marketing.manager@advantage.example: [AD-022] Reminder: approval outstanding
+    detail: {'body': 'The week 22 allocation has been waiting 48 hours.'}
+
+[2026-06-01T09:36:00]  E5   tool:notifier
+    notified Senior Marketing Head: [AD-022] Escalated after 48h with no response
+    detail: {'body': 'Week 22 budget recommendation (AD-022)\n\nTotal for the week: Rs 1,150,000\n\nProposed split:\n  google   32.4% -> 30.1% (-2.3 pp)   recent performance 145 conversions per lakh\n  meta     17.6% -> 19.9% (+2.3 pp)   recent performance 128 conversions per lakh\n  amazon   50.0% -> 50.0% (+0
+
+[2026-06-01T09:39:00]  E5   decision
+    E5: SLA of 48h breached. Reminder then escalation to Senior Marketing Head; holding the previous allocation.
+
+[2026-06-01T09:42:00]  HOLD decision
+    Holding last week allocation unchanged. No budget moved.
+
+[2026-06-01T09:45:00]  S7   tool:audit_logger
+    Case closed as held.
+    detail: {'status': 'held', 'replans': 0}
+
+------------------------------------------------------------------------------
+MANAGER BRIEF AS SENT
+------------------------------------------------------------------------------
+
+Week 22 budget recommendation (AD-022)
+
+Total for the week: Rs 1,150,000
+
+Proposed split:
+  google   32.4% -> 30.1% (-2.3 pp)   recent performance 145 conversions per lakh
+  meta     17.6% -> 19.9% (+2.3 pp)   recent performance 128 conversions per lakh
+  amazon   50.0% -> 50.0% (+0.0 pp)   recent performance 202 conversions per lakh
+
+Largest move: 2.3 pp (auto-execute threshold is 5 pp).
+
+Guardrail adjustments:
+  - google trimmed by +6.6 pp to satisfy hard_limits, BR02, weekly_shift_cap.
+  - meta trimmed by +5.7 pp to satisfy hard_limits, BR02, weekly_shift_cap.
+  - amazon trimmed by -12.3 pp to satisfy hard_limits, BR02, weekly_shift_cap.
+
+Why this needs your approval:
+  - proposal was trimmed by the guardrail agent
+
+Reply approve / modify / reject within 48h, after which this escalates to Senior Marketing Head and the current split is held.
+
+------------------------------------------------------------------------------
+WEEKLY REPORT
+------------------------------------------------------------------------------
+
+Week 22 (AD-022) - held
+Allocation: google 32% -> 32%, meta 18% -> 18%, amazon 50% -> 50%
+Guardrail: google trimmed by +6.6 pp to satisfy hard_limits, BR02, weekly_shift_cap. meta trimmed by +5.7 pp to satisfy hard_limits, BR02, weekly_shift_cap. amazon trimmed by -12.3 pp to satisfy hard_limits, BR02, weekly_shift_cap.
+Approval: proposal was trimmed by the guardrail agent
+Escalations: E5: no manager response within 48h. Reminder sent, escalated to Senior Marketing Head, previous allocation held.

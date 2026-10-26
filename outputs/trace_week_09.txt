@@ -1,0 +1,102 @@
+==============================================================================
+DECISION TRACE - AD-009, week 9  [executed]
+==============================================================================
+
+[2026-03-02T09:00:00]  S1   decision
+    Weekly cycle opened for week 9 (scheduled trigger, Monday 09:00).
+
+[2026-03-02T09:03:00]  S1   tool:performance_db
+    pulled week 8 for 3 channels
+    detail: {'reported_week': 8, 'missing': []}
+
+[2026-03-02T09:06:00]  S2   tool:policy_kb
+    retrieved rulebook v1.0: 15%-55% per channel, 15 pp weekly cap, brand rules active: BR02
+    detail: {'active_brand_rules': ['BR02']}
+
+[2026-03-02T09:09:00]  S2   tool:anomaly_checker
+    1 anomaly flag(s)
+    detail: [{'channel': 'google', 'type': 'cpc_spike', 'severity': 'high', 'detail': 'google CPC up 44% in one week, past the 30% bar for this channel (floor 30%, 2.5x its usual 2% weekly move).', 'exception': 'E1', 'change_pct': 44.0, 'bar_pct': 30.0}]
+
+[2026-03-02T09:12:00]  D1   decision
+    D1 = exception. 1 flag(s): google CPC up 44% in one week, past the 30% bar for this channel (floor 30%, 2.5x its usual 2% weekly move).
+
+[2026-03-02T09:15:00]  EXC  decision
+    Exception path taken.
+    detail: ['E1: google CPC up 44% in one week, past the 30% bar for this channel (floor 30%, 2.5x its usual 2% weekly move). Holding google at 29% and re-planning the remaining budget across the other channels.']
+
+[2026-03-02T09:18:00]  EXC  tool:notifier
+    notified marketing.manager@advantage.example: [AD-009] Week 9: anomaly detected
+    detail: {'body': 'E1: google CPC up 44% in one week, past the 30% bar for this channel (floor 30%, 2.5x its usual 2% weekly move). Holding google at 29% and re-planning the remaining budget across the other channels.'}
+
+[2026-03-02T09:21:00]  S3   tool:allocator
+    Thompson Sampling proposed google 8%, meta 10%, amazon 82%
+    detail: {'sampled_per_lakh': {'google': 95.8, 'meta': 104.7, 'amazon': 208.0}, 'posterior_mean': {'google': 93.0, 'meta': 100.7, 'amazon': 204.3}}
+
+[2026-03-02T09:24:00]  S4   tool:constraint_calculator
+    3 violation(s), trimmed to google 29%, meta 21%, amazon 50%
+    detail: {'violations': ['meta at 8.0% is below the 15% floor.', 'amazon at 62.9% exceeds the 55% ceiling.', 'BR02: amazon at 62.9% exceeds the 50% brand cap.'], 'notes': ['meta trimmed by +12.9 pp to satisfy hard_limits, BR02, weekly_shift_cap, frozen_channels.', 'amazon trimmed by -12.9 pp to satisfy hard_
+
+[2026-03-02T09:27:00]  D2   decision
+    D2 = trimmed and re-checked, now compliant (E3). meta trimmed by +12.9 pp to satisfy hard_limits, BR02, weekly_shift_cap, frozen_channels. amazon trimmed by -12.9 pp to satisfy hard_limits, BR02, weekly_shift_cap, frozen_channels.
+
+[2026-03-02T09:30:00]  S5   tool:notifier
+    notified marketing.manager@advantage.example: [AD-009] Week 9: approval needed (0.1 pp shift)
+    detail: {'body': 'Week 9 budget recommendation (AD-009)\n\nTotal for the week: Rs 1,150,000\n\nProposed split:\n  google   29.1% -> 29.1% (+0.0 pp)   recent performance 93 conversions per lakh\n  meta     21.0% -> 20.9% (-0.2 pp)   recent performance 101 conversions per lakh\n  amazon   49.8% -> 50.0% (+0.2
+
+[2026-03-02T09:33:00]  S5   decision
+    D3 = human (route approve) because anomaly flagged on google; proposal was trimmed by the guardrail agent
+
+[2026-03-02T09:36:00]  S5   decision
+    Manager decision: approve.
+    detail: {'action': 'approve'}
+
+[2026-03-02T09:39:00]  S6   tool:budget_api
+    executed google 29%, meta 21%, amazon 50%
+    detail: {'case_id': 'AD-009', 'week': 9, 'at': '2026-03-02T11:00:00', 'allocation': {'google': 0.291161, 'meta': 0.208839, 'amazon': 0.5}, 'amounts_inr': {'google': 334835.15, 'meta': 240164.85, 'amazon': 575000.0}, 'reference': 'BUDGET-009'}
+
+[2026-03-02T09:42:00]  S6   decision
+    Executed after manager approval.
+
+[2026-03-02T09:45:00]  S7   tool:audit_logger
+    Case closed as executed.
+    detail: {'status': 'executed', 'replans': 0}
+
+------------------------------------------------------------------------------
+MANAGER BRIEF AS SENT
+------------------------------------------------------------------------------
+
+Week 9 budget recommendation (AD-009)
+
+Total for the week: Rs 1,150,000
+
+Proposed split:
+  google   29.1% -> 29.1% (+0.0 pp)   recent performance 93 conversions per lakh
+  meta     21.0% -> 20.9% (-0.2 pp)   recent performance 101 conversions per lakh
+  amazon   49.8% -> 50.0% (+0.2 pp)   recent performance 204 conversions per lakh
+
+Largest move: 0.1 pp (auto-execute threshold is 5 pp).
+
+Flagged this week:
+  - google CPC up 44% in one week, past the 30% bar for this channel (floor 30%, 2.5x its usual 2% weekly move).
+  - Held frozen: google.
+
+Guardrail adjustments:
+  - meta trimmed by +12.9 pp to satisfy hard_limits, BR02, weekly_shift_cap, frozen_channels.
+  - amazon trimmed by -12.9 pp to satisfy hard_limits, BR02, weekly_shift_cap, frozen_channels.
+
+Why this needs your approval:
+  - anomaly flagged on google
+  - proposal was trimmed by the guardrail agent
+
+Reply approve / modify / reject within 48h, after which this escalates to Senior Marketing Head and the current split is held.
+
+------------------------------------------------------------------------------
+WEEKLY REPORT
+------------------------------------------------------------------------------
+
+Week 9 (AD-009) - executed
+Allocation: google 29% -> 29%, meta 21% -> 21%, amazon 50% -> 50%
+Anomalies: google CPC up 44% in one week, past the 30% bar for this channel (floor 30%, 2.5x its usual 2% weekly move).
+Guardrail: meta trimmed by +12.9 pp to satisfy hard_limits, BR02, weekly_shift_cap, frozen_channels. amazon trimmed by -12.9 pp to satisfy hard_limits, BR02, weekly_shift_cap, frozen_channels.
+Approval: anomaly flagged on google; proposal was trimmed by the guardrail agent
+Escalations: E1: google CPC up 44% in one week, past the 30% bar for this channel (floor 30%, 2.5x its usual 2% weekly move). Holding google at 29% and re-planning the remaining budget across the other channels.

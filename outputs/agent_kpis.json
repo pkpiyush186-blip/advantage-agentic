@@ -1,0 +1,170 @@
+{
+  "allocator_config": {
+    "concentration": 3.0,
+    "discount": 0.0,
+    "seed": 7
+  },
+  "manager_scenario": {
+    "6": {
+      "action": "modify",
+      "note": "Good direction, but take half of it this week."
+    },
+    "11": {
+      "action": "reject",
+      "note": "Too aggressive ahead of the campaign launch."
+    },
+    "22": {
+      "action": "timeout",
+      "note": "(no response within the SLA)"
+    }
+  },
+  "outcome_kpis": {
+    "agentic_process": {
+      "weeks": 26,
+      "total_spend_inr": 29899999.99,
+      "total_conversions": 47341,
+      "total_revenue_inr": 98903878.55,
+      "conversions_per_rupee": 0.00158331,
+      "cost_per_conversion_inr": 631.59,
+      "roas": 3.3078,
+      "conversions_per_lakh": 158.33
+    },
+    "monthly_manual": {
+      "weeks": 26,
+      "total_spend_inr": 29900000.0,
+      "total_conversions": 43528,
+      "total_revenue_inr": 91184615.53,
+      "conversions_per_rupee": 0.00145579,
+      "cost_per_conversion_inr": 686.91,
+      "roas": 3.0497,
+      "conversions_per_lakh": 145.58
+    },
+    "thompson_direct": {
+      "weeks": 26,
+      "total_spend_inr": 29900000.01,
+      "total_conversions": 47450,
+      "total_revenue_inr": 99121403.56,
+      "conversions_per_rupee": 0.00158696,
+      "cost_per_conversion_inr": 630.14,
+      "roas": 3.3151,
+      "conversions_per_lakh": 158.7
+    },
+    "oracle": {
+      "weeks": 26,
+      "total_spend_inr": 29900000.0,
+      "total_conversions": 49043,
+      "total_revenue_inr": 102093808.21,
+      "conversions_per_rupee": 0.00164023,
+      "cost_per_conversion_inr": 609.67,
+      "roas": 3.4145,
+      "conversions_per_lakh": 164.02
+    }
+  },
+  "gain_vs_as_is_pct": 8.76,
+  "direct_allocator_gain_pct": 9.01,
+  "process_cost_of_governance_pp": -0.25,
+  "ceiling_pct": 12.67,
+  "to_be_process_kpis": {
+    "cycles": 26,
+    "auto_executed": 0,
+    "sent_for_approval": 26,
+    "escalated": 0,
+    "held": 1,
+    "stp_rate": 0.0,
+    "degraded_weeks": 1,
+    "trimmed_weeks": 23,
+    "anomaly_weeks": 3,
+    "replan_cycles": 2,
+    "total_tool_calls": 218,
+    "notifications_sent": 33,
+    "exception_paths_exercised": {
+      "E1": 2,
+      "E2": 1,
+      "E4": 2,
+      "E5": 1
+    }
+  },
+  "detector_evaluation": {
+    "events": [
+      {
+        "test_case": "TC09",
+        "channel": "google",
+        "kind": "cpc_spike",
+        "window": [
+          9,
+          10
+        ]
+      },
+      {
+        "test_case": "TC10",
+        "channel": "meta",
+        "kind": "cvr_collapse",
+        "window": [
+          15,
+          16
+        ]
+      },
+      {
+        "test_case": "TC11",
+        "channel": "amazon",
+        "kind": "missing_feed",
+        "window": [
+          18
+        ]
+      }
+    ],
+    "detected": [
+      [
+        9,
+        "google",
+        "cpc_spike"
+      ],
+      [
+        15,
+        "meta",
+        "cvr_collapse"
+      ],
+      [
+        18,
+        "amazon",
+        "missing_feed"
+      ]
+    ],
+    "hits": [
+      {
+        "test_case": "TC09",
+        "channel": "google",
+        "kind": "cpc_spike",
+        "window": [
+          9,
+          10
+        ],
+        "detected_week": 9
+      },
+      {
+        "test_case": "TC10",
+        "channel": "meta",
+        "kind": "cvr_collapse",
+        "window": [
+          15,
+          16
+        ],
+        "detected_week": 15
+      },
+      {
+        "test_case": "TC11",
+        "channel": "amazon",
+        "kind": "missing_feed",
+        "window": [
+          18
+        ],
+        "detected_week": 18
+      }
+    ],
+    "false_positives": [],
+    "misses": [],
+    "precision": 1.0,
+    "recall": 1.0,
+    "false_positive_weeks": 0
+  }
+}

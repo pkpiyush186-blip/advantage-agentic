@@ -1,0 +1,801 @@
+{
+  "method": {
+    "train_seeds": [
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      107,
+      108
+    ],
+    "test_seed": 20260115,
+    "eval_allocator_seeds": [
+      7,
+      13,
+      29,
+      41,
+      97
+    ],
+    "concentration_grid": [
+      0.25,
+      0.5,
+      0.75,
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      6.0
+    ],
+    "discount_grid": [
+      0.0,
+      0.1,
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.65,
+      0.75,
+      0.9,
+      1.0
+    ],
+    "stp_target": 0.4,
+    "boundary_warnings": [],
+    "domain_notes": [
+      "gain-max: discount=0, full discounting - the estimate uses last week alone",
+      "balanced: discount=0, full discounting - the estimate uses last week alone"
+    ]
+  },
+  "operating_points": {
+    "gain_max": {
+      "concentration": 3.0,
+      "discount": 0.0,
+      "gain_mean": 9.08,
+      "gain_min": 8.82,
+      "gain_max": 9.48,
+      "gains_by_seed": {
+        "7": 9.15,
+        "13": 8.82,
+        "29": 8.96,
+        "41": 9.01,
+        "97": 9.48
+      },
+      "stp_mean": 0.0077,
+      "process_counts": {
+        "cycles": 26,
+        "auto_executed": 0,
+        "sent_for_approval": 26,
+        "escalated": 0,
+        "stp_rate": 0.0,
+        "degraded_weeks": 1,
+        "trimmed_weeks": 23,
+        "infeasible_weeks": 0
+      }
+    },
+    "balanced": {
+      "concentration": 0.75,
+      "discount": 0.0,
+      "gain_mean": 5.59,
+      "gain_min": 5.2,
+      "gain_max": 5.86,
+      "gains_by_seed": {
+        "7": 5.86,
+        "13": 5.34,
+        "29": 5.2,
+        "41": 5.72,
+        "97": 5.83
+      },
+      "stp_mean": 0.4231,
+      "process_counts": {
+        "cycles": 26,
+        "auto_executed": 13,
+        "sent_for_approval": 13,
+        "escalated": 0,
+        "stp_rate": 0.5,
+        "degraded_weeks": 1,
+        "trimmed_weeks": 0,
+        "infeasible_weeks": 0
+      }
+    },
+    "balanced_note": "highest-gain configuration with straight-through processing at or above the 40% target"
+  },
+  "outcome_kpis": {
+    "monthly_manual": {
+      "weeks": 26,
+      "total_spend_inr": 29900000.0,
+      "total_conversions": 43528,
+      "total_revenue_inr": 91184615.53,
+      "conversions_per_rupee": 0.00145579,
+      "cost_per_conversion_inr": 686.91,
+      "roas": 3.0497,
+      "conversions_per_lakh": 145.58
+    },
+    "greedy_recency": {
+      "weeks": 26,
+      "total_spend_inr": 29899999.99,
+      "total_conversions": 47487,
+      "total_revenue_inr": 98963734.97,
+      "conversions_per_rupee": 0.00158819,
+      "cost_per_conversion_inr": 629.65,
+      "roas": 3.3098,
+      "conversions_per_lakh": 158.82
+    },
+    "thompson_sampling_gain_max": {
+      "weeks": 26,
+      "total_spend_inr": 29900000.01,
+      "total_conversions": 47450,
+      "total_revenue_inr": 99121403.56,
+      "conversions_per_rupee": 0.00158696,
+      "cost_per_conversion_inr": 630.14,
+      "roas": 3.3151,
+      "conversions_per_lakh": 158.7
+    },
+    "thompson_sampling_balanced": {
+      "weeks": 26,
+      "total_spend_inr": 29900000.0,
+      "total_conversions": 46018,
+      "total_revenue_inr": 95721804.31,
+      "conversions_per_rupee": 0.00153906,
+      "cost_per_conversion_inr": 649.75,
+      "roas": 3.2014,
+      "conversions_per_lakh": 153.91
+    },
+    "oracle": {
+      "weeks": 26,
+      "total_spend_inr": 29900000.0,
+      "total_conversions": 49043,
+      "total_revenue_inr": 102093808.21,
+      "conversions_per_rupee": 0.00164023,
+      "cost_per_conversion_inr": 609.67,
+      "roas": 3.4145,
+      "conversions_per_lakh": 164.02
+    }
+  },
+  "greedy_gain_pct": 9.09,
+  "exploration_contribution_pp": -0.01,
+  "ceiling_pct": 12.67,
+  "capture_of_ceiling_pct": 71.7,
+  "tuning_grid": [
+    {
+      "concentration": 3.0,
+      "discount": 0.0,
+      "mean_gain_pct": 9.923,
+      "sd_gain_pct": 0.995,
+      "worst_world_gain_pct": 7.546,
+      "mean_stp_rate": 0.0048
+    },
+    {
+      "concentration": 2.0,
+      "discount": 0.1,
+      "mean_gain_pct": 9.876,
+      "sd_gain_pct": 1.054,
+      "worst_world_gain_pct": 7.227,
+      "mean_stp_rate": 0.0409
+    },
+    {
+      "concentration": 2.0,
+      "discount": 0.0,
+      "mean_gain_pct": 9.779,
+      "sd_gain_pct": 1.114,
+      "worst_world_gain_pct": 7.147,
+      "mean_stp_rate": 0.0553
+    },
+    {
+      "concentration": 3.0,
+      "discount": 0.1,
+      "mean_gain_pct": 9.717,
+      "sd_gain_pct": 0.955,
+      "worst_world_gain_pct": 7.412,
+      "mean_stp_rate": 0.012
+    },
+    {
+      "concentration": 4.0,
+      "discount": 0.0,
+      "mean_gain_pct": 9.636,
+      "sd_gain_pct": 0.951,
+      "worst_world_gain_pct": 7.416,
+      "mean_stp_rate": 0.0048
+    },
+    {
+      "concentration": 2.0,
+      "discount": 0.2,
+      "mean_gain_pct": 9.63,
+      "sd_gain_pct": 1.091,
+      "worst_world_gain_pct": 6.881,
+      "mean_stp_rate": 0.0433
+    },
+    {
+      "concentration": 3.0,
+      "discount": 0.2,
+      "mean_gain_pct": 9.498,
+      "sd_gain_pct": 0.991,
+      "worst_world_gain_pct": 7.193,
+      "mean_stp_rate": 0.0072
+    },
+    {
+      "concentration": 4.0,
+      "discount": 0.1,
+      "mean_gain_pct": 9.402,
+      "sd_gain_pct": 0.95,
+      "worst_world_gain_pct": 7.282,
+      "mean_stp_rate": 0.0024
+    },
+    {
+      "concentration": 2.0,
+      "discount": 0.3,
+      "mean_gain_pct": 9.367,
+      "sd_gain_pct": 1.049,
+      "worst_world_gain_pct": 6.747,
+      "mean_stp_rate": 0.0457
+    },
+    {
+      "concentration": 3.0,
+      "discount": 0.3,
+      "mean_gain_pct": 9.218,
+      "sd_gain_pct": 0.932,
+      "worst_world_gain_pct": 7.045,
+      "mean_stp_rate": 0.0024
+    },
+    {
+      "concentration": 4.0,
+      "discount": 0.2,
+      "mean_gain_pct": 9.204,
+      "sd_gain_pct": 0.906,
+      "worst_world_gain_pct": 7.143,
+      "mean_stp_rate": 0.0
+    },
+    {
+      "concentration": 6.0,
+      "discount": 0.0,
+      "mean_gain_pct": 9.098,
+      "sd_gain_pct": 0.979,
+      "worst_world_gain_pct": 6.523,
+      "mean_stp_rate": 0.0192
+    },
+    {
+      "concentration": 2.0,
+      "discount": 0.4,
+      "mean_gain_pct": 8.97,
+      "sd_gain_pct": 1.03,
+      "worst_world_gain_pct": 6.334,
+      "mean_stp_rate": 0.0289
+    },
+    {
+      "concentration": 6.0,
+      "discount": 0.1,
+      "mean_gain_pct": 8.894,
+      "sd_gain_pct": 0.997,
+      "worst_world_gain_pct": 6.708,
+      "mean_stp_rate": 0.0192
+    },
+    {
+      "concentration": 4.0,
+      "discount": 0.3,
+      "mean_gain_pct": 8.809,
+      "sd_gain_pct": 0.958,
+      "worst_world_gain_pct": 6.783,
+      "mean_stp_rate": 0.0
+    },
+    {
+      "concentration": 3.0,
+      "discount": 0.4,
+      "mean_gain_pct": 8.755,
+      "sd_gain_pct": 0.905,
+      "worst_world_gain_pct": 6.585,
+      "mean_stp_rate": 0.0024
+    },
+    {
+      "concentration": 6.0,
+      "discount": 0.2,
+      "mean_gain_pct": 8.541,
+      "sd_gain_pct": 1.054,
+      "worst_world_gain_pct": 6.341,
+      "mean_stp_rate": 0.0192
+    },
+    {
+      "concentration": 4.0,
+      "discount": 0.4,
+      "mean_gain_pct": 8.392,
+      "sd_gain_pct": 0.805,
+      "worst_world_gain_pct": 6.692,
+      "mean_stp_rate": 0.0
+    },
+    {
+      "concentration": 2.0,
+      "discount": 0.5,
+      "mean_gain_pct": 8.353,
+      "sd_gain_pct": 0.97,
+      "worst_world_gain_pct": 5.881,
+      "mean_stp_rate": 0.0409
+    },
+    {
+      "concentration": 6.0,
+      "discount": 0.3,
+      "mean_gain_pct": 8.218,
+      "sd_gain_pct": 0.955,
+      "worst_world_gain_pct": 6.298,
+      "mean_stp_rate": 0.0192
+    },
+    {
+      "concentration": 3.0,
+      "discount": 0.5,
+      "mean_gain_pct": 8.144,
+      "sd_gain_pct": 0.797,
+      "worst_world_gain_pct": 6.421,
+      "mean_stp_rate": 0.0024
+    },
+    {
+      "concentration": 6.0,
+      "discount": 0.4,
+      "mean_gain_pct": 7.841,
+      "sd_gain_pct": 0.921,
+      "worst_world_gain_pct": 5.879,
+      "mean_stp_rate": 0.0192
+    },
+    {
+      "concentration": 4.0,
+      "discount": 0.5,
+      "mean_gain_pct": 7.808,
+      "sd_gain_pct": 0.791,
+      "worst_world_gain_pct": 6.198,
+      "mean_stp_rate": 0.0
+    },
+    {
+      "concentration": 1.0,
+      "discount": 0.1,
+      "mean_gain_pct": 7.61,
+      "sd_gain_pct": 0.947,
+      "worst_world_gain_pct": 5.738,
+      "mean_stp_rate": 0.2284
+    },
+    {
+      "concentration": 1.0,
+      "discount": 0.0,
+      "mean_gain_pct": 7.609,
+      "sd_gain_pct": 0.96,
+      "worst_world_gain_pct": 5.264,
+      "mean_stp_rate": 0.2308
+    },
+    {
+      "concentration": 1.0,
+      "discount": 0.2,
+      "mean_gain_pct": 7.469,
+      "sd_gain_pct": 1.144,
+      "worst_world_gain_pct": 4.974,
+      "mean_stp_rate": 0.25
+    },
+    {
+      "concentration": 6.0,
+      "discount": 0.5,
+      "mean_gain_pct": 7.166,
+      "sd_gain_pct": 0.74,
+      "worst_world_gain_pct": 5.765,
+      "mean_stp_rate": 0.0217
+    },
+    {
+      "concentration": 1.0,
+      "discount": 0.3,
+      "mean_gain_pct": 7.128,
+      "sd_gain_pct": 0.984,
+      "worst_world_gain_pct": 4.838,
+      "mean_stp_rate": 0.274
+    },
+    {
+      "concentration": 2.0,
+      "discount": 0.65,
+      "mean_gain_pct": 6.904,
+      "sd_gain_pct": 0.982,
+      "worst_world_gain_pct": 4.82,
+      "mean_stp_rate": 0.0505
+    },
+    {
+      "concentration": 3.0,
+      "discount": 0.65,
+      "mean_gain_pct": 6.768,
+      "sd_gain_pct": 0.778,
+      "worst_world_gain_pct": 5.025,
+      "mean_stp_rate": 0.0048
+    },
+    {
+      "concentration": 1.0,
+      "discount": 0.4,
+      "mean_gain_pct": 6.742,
+      "sd_gain_pct": 1.008,
+      "worst_world_gain_pct": 4.471,
+      "mean_stp_rate": 0.3029
+    },
+    {
+      "concentration": 0.75,
+      "discount": 0.0,
+      "mean_gain_pct": 6.436,
+      "sd_gain_pct": 0.902,
+      "worst_world_gain_pct": 4.549,
+      "mean_stp_rate": 0.4159
+    },
+    {
+      "concentration": 0.75,
+      "discount": 0.1,
+      "mean_gain_pct": 6.394,
+      "sd_gain_pct": 0.974,
+      "worst_world_gain_pct": 4.366,
+      "mean_stp_rate": 0.4255
+    },
+    {
+      "concentration": 4.0,
+      "discount": 0.65,
+      "mean_gain_pct": 6.232,
+      "sd_gain_pct": 0.572,
+      "worst_world_gain_pct": 4.922,
+      "mean_stp_rate": 0.0024
+    },
+    {
+      "concentration": 1.0,
+      "discount": 0.5,
+      "mean_gain_pct": 6.185,
+      "sd_gain_pct": 1.017,
+      "worst_world_gain_pct": 3.934,
+      "mean_stp_rate": 0.3389
+    },
+    {
+      "concentration": 0.75,
+      "discount": 0.2,
+      "mean_gain_pct": 6.116,
+      "sd_gain_pct": 0.943,
+      "worst_world_gain_pct": 4.02,
+      "mean_stp_rate": 0.4375
+    },
+    {
+      "concentration": 0.75,
+      "discount": 0.3,
+      "mean_gain_pct": 6.002,
+      "sd_gain_pct": 0.899,
+      "worst_world_gain_pct": 3.84,
+      "mean_stp_rate": 0.4687
+    },
+    {
+      "concentration": 3.0,
+      "discount": 0.75,
+      "mean_gain_pct": 5.466,
+      "sd_gain_pct": 0.825,
+      "worst_world_gain_pct": 3.799,
+      "mean_stp_rate": 0.0144
+    },
+    {
+      "concentration": 0.75,
+      "discount": 0.4,
+      "mean_gain_pct": 5.44,
+      "sd_gain_pct": 0.876,
+      "worst_world_gain_pct": 3.533,
+      "mean_stp_rate": 0.536
+    },
+    {
+      "concentration": 2.0,
+      "discount": 0.75,
+      "mean_gain_pct": 5.367,
+      "sd_gain_pct": 0.937,
+      "worst_world_gain_pct": 3.435,
+      "mean_stp_rate": 0.1202
+    },
+    {
+      "concentration": 6.0,
+      "discount": 0.65,
+      "mean_gain_pct": 5.329,
+      "sd_gain_pct": 0.565,
+      "worst_world_gain_pct": 3.688,
+      "mean_stp_rate": 0.0217
+    },
+    {
+      "concentration": 0.75,
+      "discount": 0.5,
+      "mean_gain_pct": 5.042,
+      "sd_gain_pct": 0.829,
+      "worst_world_gain_pct": 3.239,
+      "mean_stp_rate": 0.6106
+    },
+    {
+      "concentration": 0.5,
+      "discount": 0.0,
+      "mean_gain_pct": 4.945,
+      "sd_gain_pct": 0.822,
+      "worst_world_gain_pct": 3.282,
+      "mean_stp_rate": 0.7091
+    },
+    {
+      "concentration": 4.0,
+      "discount": 0.75,
+      "mean_gain_pct": 4.902,
+      "sd_gain_pct": 0.677,
+      "worst_world_gain_pct": 3.328,
+      "mean_stp_rate": 0.0096
+    },
+    {
+      "concentration": 0.5,
+      "discount": 0.1,
+      "mean_gain_pct": 4.83,
+      "sd_gain_pct": 0.868,
+      "worst_world_gain_pct": 2.995,
+      "mean_stp_rate": 0.7284
+    },
+    {
+      "concentration": 0.5,
+      "discount": 0.2,
+      "mean_gain_pct": 4.763,
+      "sd_gain_pct": 0.819,
+      "worst_world_gain_pct": 2.966,
+      "mean_stp_rate": 0.7524
+    },
+    {
+      "concentration": 1.0,
+      "discount": 0.65,
+      "mean_gain_pct": 4.713,
+      "sd_gain_pct": 0.839,
+      "worst_world_gain_pct": 2.984,
+      "mean_stp_rate": 0.4976
+    },
+    {
+      "concentration": 0.5,
+      "discount": 0.3,
+      "mean_gain_pct": 4.476,
+      "sd_gain_pct": 0.824,
+      "worst_world_gain_pct": 2.852,
+      "mean_stp_rate": 0.7909
+    },
+    {
+      "concentration": 0.5,
+      "discount": 0.4,
+      "mean_gain_pct": 4.189,
+      "sd_gain_pct": 0.753,
+      "worst_world_gain_pct": 2.624,
+      "mean_stp_rate": 0.8173
+    },
+    {
+      "concentration": 6.0,
+      "discount": 0.75,
+      "mean_gain_pct": 4.014,
+      "sd_gain_pct": 0.693,
+      "worst_world_gain_pct": 2.121,
+      "mean_stp_rate": 0.0217
+    },
+    {
+      "concentration": 0.75,
+      "discount": 0.65,
+      "mean_gain_pct": 3.983,
+      "sd_gain_pct": 0.798,
+      "worst_world_gain_pct": 2.469,
+      "mean_stp_rate": 0.7644
+    },
+    {
+      "concentration": 0.5,
+      "discount": 0.5,
+      "mean_gain_pct": 3.844,
+      "sd_gain_pct": 0.721,
+      "worst_world_gain_pct": 2.444,
+      "mean_stp_rate": 0.8486
+    },
+    {
+      "concentration": 1.0,
+      "discount": 0.75,
+      "mean_gain_pct": 3.752,
+      "sd_gain_pct": 0.796,
+      "worst_world_gain_pct": 2.423,
+      "mean_stp_rate": 0.6779
+    },
+    {
+      "concentration": 0.25,
+      "discount": 0.0,
+      "mean_gain_pct": 3.198,
+      "sd_gain_pct": 0.684,
+      "worst_world_gain_pct": 1.941,
+      "mean_stp_rate": 0.9039
+    },
+    {
+      "concentration": 0.25,
+      "discount": 0.1,
+      "mean_gain_pct": 3.181,
+      "sd_gain_pct": 0.643,
+      "worst_world_gain_pct": 2.077,
+      "mean_stp_rate": 0.9111
+    },
+    {
+      "concentration": 0.5,
+      "discount": 0.65,
+      "mean_gain_pct": 3.109,
+      "sd_gain_pct": 0.696,
+      "worst_world_gain_pct": 1.929,
+      "mean_stp_rate": 0.8942
+    },
+    {
+      "concentration": 0.75,
+      "discount": 0.75,
+      "mean_gain_pct": 3.102,
+      "sd_gain_pct": 0.73,
+      "worst_world_gain_pct": 1.717,
+      "mean_stp_rate": 0.8678
+    },
+    {
+      "concentration": 3.0,
+      "discount": 0.9,
+      "mean_gain_pct": 3.085,
+      "sd_gain_pct": 1.01,
+      "worst_world_gain_pct": 1.549,
+      "mean_stp_rate": 0.1731
+    },
+    {
+      "concentration": 0.25,
+      "discount": 0.2,
+      "mean_gain_pct": 3.08,
+      "sd_gain_pct": 0.727,
+      "worst_world_gain_pct": 1.749,
+      "mean_stp_rate": 0.9231
+    },
+    {
+      "concentration": 0.25,
+      "discount": 0.3,
+      "mean_gain_pct": 2.992,
+      "sd_gain_pct": 0.697,
+      "worst_world_gain_pct": 1.804,
+      "mean_stp_rate": 0.9231
+    },
+    {
+      "concentration": 4.0,
+      "discount": 0.9,
+      "mean_gain_pct": 2.947,
+      "sd_gain_pct": 1.002,
+      "worst_world_gain_pct": 1.109,
+      "mean_stp_rate": 0.0817
+    },
+    {
+      "concentration": 2.0,
+      "discount": 0.9,
+      "mean_gain_pct": 2.925,
+      "sd_gain_pct": 0.907,
+      "worst_world_gain_pct": 1.49,
+      "mean_stp_rate": 0.5024
+    },
+    {
+      "concentration": 0.25,
+      "discount": 0.4,
+      "mean_gain_pct": 2.811,
+      "sd_gain_pct": 0.697,
+      "worst_world_gain_pct": 1.61,
+      "mean_stp_rate": 0.9231
+    },
+    {
+      "concentration": 0.25,
+      "discount": 0.5,
+      "mean_gain_pct": 2.715,
+      "sd_gain_pct": 0.704,
+      "worst_world_gain_pct": 1.619,
+      "mean_stp_rate": 0.9231
+    },
+    {
+      "concentration": 0.5,
+      "discount": 0.75,
+      "mean_gain_pct": 2.52,
+      "sd_gain_pct": 0.706,
+      "worst_world_gain_pct": 1.353,
+      "mean_stp_rate": 0.8942
+    },
+    {
+      "concentration": 6.0,
+      "discount": 0.9,
+      "mean_gain_pct": 2.399,
+      "sd_gain_pct": 1.019,
+      "worst_world_gain_pct": 0.553,
+      "mean_stp_rate": 0.0409
+    },
+    {
+      "concentration": 1.0,
+      "discount": 0.9,
+      "mean_gain_pct": 2.298,
+      "sd_gain_pct": 0.693,
+      "worst_world_gain_pct": 1.178,
+      "mean_stp_rate": 0.8582
+    },
+    {
+      "concentration": 0.25,
+      "discount": 0.65,
+      "mean_gain_pct": 2.261,
+      "sd_gain_pct": 0.682,
+      "worst_world_gain_pct": 1.228,
+      "mean_stp_rate": 0.9231
+    },
+    {
+      "concentration": 0.75,
+      "discount": 0.9,
+      "mean_gain_pct": 2.076,
+      "sd_gain_pct": 0.69,
+      "worst_world_gain_pct": 1.093,
+      "mean_stp_rate": 0.8846
+    },
+    {
+      "concentration": 0.25,
+      "discount": 0.75,
+      "mean_gain_pct": 1.94,
+      "sd_gain_pct": 0.617,
+      "worst_world_gain_pct": 0.993,
+      "mean_stp_rate": 0.9231
+    },
+    {
+      "concentration": 2.0,
+      "discount": 1.0,
+      "mean_gain_pct": 1.855,
+      "sd_gain_pct": 0.709,
+      "worst_world_gain_pct": 0.74,
+      "mean_stp_rate": 0.6851
+    },
+    {
+      "concentration": 0.5,
+      "discount": 0.9,
+      "mean_gain_pct": 1.819,
+      "sd_gain_pct": 0.587,
+      "worst_world_gain_pct": 0.861,
+      "mean_stp_rate": 0.8942
+    },
+    {
+      "concentration": 1.0,
+      "discount": 1.0,
+      "mean_gain_pct": 1.762,
+      "sd_gain_pct": 0.636,
+      "worst_world_gain_pct": 0.804,
+      "mean_stp_rate": 0.8726
+    },
+    {
+      "concentration": 0.75,
+      "discount": 1.0,
+      "mean_gain_pct": 1.669,
+      "sd_gain_pct": 0.634,
+      "worst_world_gain_pct": 0.777,
+      "mean_stp_rate": 0.887
+    },
+    {
+      "concentration": 3.0,
+      "discount": 1.0,
+      "mean_gain_pct": 1.667,
+      "sd_gain_pct": 0.928,
+      "worst_world_gain_pct": 0.294,
+      "mean_stp_rate": 0.4976
+    },
+    {
+      "concentration": 4.0,
+      "discount": 1.0,
+      "mean_gain_pct": 1.662,
+      "sd_gain_pct": 1.044,
+      "worst_world_gain_pct": 0.239,
+      "mean_stp_rate": 0.3462
+    },
+    {
+      "concentration": 0.25,
+      "discount": 0.9,
+      "mean_gain_pct": 1.623,
+      "sd_gain_pct": 0.637,
+      "worst_world_gain_pct": 0.808,
+      "mean_stp_rate": 0.9231
+    },
+    {
+      "concentration": 0.5,
+      "discount": 1.0,
+      "mean_gain_pct": 1.525,
+      "sd_gain_pct": 0.585,
+      "worst_world_gain_pct": 0.649,
+      "mean_stp_rate": 0.8942
+    },
+    {
+      "concentration": 6.0,
+      "discount": 1.0,
+      "mean_gain_pct": 1.486,
+      "sd_gain_pct": 1.01,
+      "worst_world_gain_pct": 0.014,
+      "mean_stp_rate": 0.1803
+    },
+    {
+      "concentration": 0.25,
+      "discount": 1.0,
+      "mean_gain_pct": 1.425,
+      "sd_gain_pct": 0.603,
+      "worst_world_gain_pct": 0.517,
+      "mean_stp_rate": 0.9231
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "version": "1.0",
+  "owner": "Marketing Manager, AdVantage Retail Pvt. Ltd.",
+  "last_reviewed": "2026-01-15",
+  "note": "Knowledge source for the Guardrail agent. The agent reads these rules at run time; they are deliberately NOT hard-coded in the agent, so a rule change (TC16) takes effect without touching any code.",
+
+  "budget": {
+    "total_weekly_budget_inr": 1150000,
+    "monthly_budget_inr": 5000000,
+    "currency": "INR",
+    "agent_may_change_total": false
+  },
+
+  "channels": ["google", "meta", "amazon"],
+
+  "hard_limits": {
+    "min_channel_share": 0.15,
+    "max_channel_share": 0.55,
+    "max_weekly_shift_pp": 15.0,
+    "rationale": "No channel may be starved below 15% (keeps learning signal and brand presence alive) or exceed 55% (concentration risk). A single week may not move any channel by more than 15 percentage points, so one bad proposal cannot swing the whole budget."
+  },
+
+  "approval": {
+    "auto_execute_max_shift_pp": 5.0,
+    "material_trim_pp": 1.0,
+    "approval_sla_hours": 48,
+    "max_replans": 2,
+    "escalation_after_sla_to": "Senior Marketing Head",
+    "always_require_approval_on": [
+      "anomaly_flag",
+      "trimmed_proposal",
+      "degraded_data",
+      "after_override"
+    ],
+    "rationale": "Shifts of 5 pp or less on clean data are small, capped and fully auditable, so the agent may act and report. Anything larger, or anything resting on a flagged or incomplete week, is signed off by the accountable human. A trim only counts as a trim once it moves a channel by at least material_trim_pp - otherwise rounding-level corrections would send every cycle to the manager and straight-through processing could never be above zero."
+  },
+
+  "brand_rules": [
+    {
+      "id": "BR01",
+      "description": "Meta share capped at 40% while a brand-safety review is open.",
+      "channel": "meta",
+      "max_share": 0.40,
+      "active": false
+    },
+    {
+      "id": "BR02",
+      "description": "Amazon Ads share capped at 50% to protect direct-to-site customer ownership.",
+      "channel": "amazon",
+      "max_share": 0.50,
+      "active": true
+    },
+    {
+      "id": "BR03",
+      "description": "Google share floor of 20% during the festive window to defend branded search.",
+      "channel": "google",
+      "min_share": 0.20,
+      "active": false,
+      "applies_when": "festive"
+    }
+  ],
+
+  "anomaly_thresholds": {
+    "cpc_spike_pct": 30.0,
+    "cvr_drop_pct": 30.0,
+    "lookback_weeks": 6,
+    "volatility_z": 2.5,
+    "min_observations": 3,
+    "assumed_saturation_alpha": 0.85,
+    "under_delivery_pct": 10.0,
+    "pacing_headroom_pct": 5.0,
+    "treat_missing_feed_as_anomaly": true,
+    "rationale": "A fixed percentage on its own is not enough. Channel performance rotates with season, creative fatigue and competitor bidding, so a 30% move against a trailing average is ordinary for a volatile channel and alarming for a stable one. A flag therefore requires the move to be BOTH larger than the fixed percentage AND more than volatility_z standard deviations away from that channel's own recent behaviour. Without the second test the detector flagged half the weeks in the year, which in practice means a manager stops reading the alerts."
+  },
+
+  "degraded_mode": {
+    "trigger": "missing or late data feed for any channel",
+    "shift_cap_multiplier": 0.5,
+    "rationale": "On stale data the agent is less certain, so it is allowed to move only half as far."
+  },
+
+  "failure_handling": {
+    "on_tool_failure": "hold_previous_allocation_and_escalate",
+    "manager_may_revert_to_static_split": true
+  }
+}

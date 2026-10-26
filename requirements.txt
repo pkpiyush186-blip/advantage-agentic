@@ -1,0 +1,10 @@
+# Phases 1-4. No API key needed anywhere; the agents make no LLM calls.
+numpy>=2.0
+pandas>=2.2
+matplotlib>=3.8
+langgraph>=1.2
+streamlit>=1.40
+
+# Optional: fluent rewriting of the manager brief only. The process never
+# depends on it, and no decision or figure comes from it.
+# anthropic>=0.40
