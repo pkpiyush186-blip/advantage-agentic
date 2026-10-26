@@ -87,12 +87,31 @@ back for a second decision.
 
 ## Honest notes
 
-**The JavaScript has not been executed.** Node.js does not run on the machine
-this was built on, so the logic was ported from the tested Python and the
-workflow JSON was validated structurally — node names, connections, no orphans
-— but never run. Expect to fix one or two small things on first import. The
-likely candidates are the `Wait` node's form parameters and the `IF` node
-condition format, both of which change between n8n versions.
+**The JavaScript is tested; the node wiring is not.**
+
+All 12 Code nodes were executed in a real JavaScript engine against the live
+dataset, driving week 18 end to end plus the E3, E4 and E5 branches. No errors,
+and the behaviour matches the Python system:
+
+| | Python | n8n port |
+|---|---|---|
+| Missing feed detected | amazon, week 17 | amazon, week 17 |
+| Degraded mode, cap halved | 15 → 7.5 pp | 15 → 7.5 pp |
+| Fallback to last valid week | yes | yes |
+| Guardrail trimmed Google to | 55.0% | 55.0% |
+| Route | approve | approve |
+| Reject → re-plan | pulls back to status quo | pulls back to status quo |
+| Timeout → hold | executed = previous | executed = previous |
+
+The proposals differ by a percentage point or two between the two versions
+because Thompson Sampling *samples* — a different random draw gives a slightly
+different split. That is the algorithm working, not a porting error.
+
+**What is still untested** is n8n's own node configuration: the `IF` and
+`Switch` condition format, the `Wait` node's form parameters, and the HTTP
+Request node's options. Those are n8n-version-specific and can only be checked
+by importing. If something fails on import it will be one of those four, not the
+logic.
 
 **This is a port, not the original.** These parts of the Python system could
 not come across and remain only there:
