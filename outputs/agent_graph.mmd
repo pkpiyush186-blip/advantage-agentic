@@ -1,0 +1,43 @@
+---
+config:
+  flowchart:
+    curve: linear
+---
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	s1_pull(s1_pull)
+	s2_validate(s2_validate)
+	exception(exception)
+	s3_propose(s3_propose)
+	s4_guardrail(s4_guardrail)
+	s5_route(s5_route)
+	await_manager(await_manager)
+	timeout(timeout)
+	escalate(escalate)
+	s6_execute(s6_execute)
+	hold(hold)
+	s7_report(s7_report)
+	__end__([<p>__end__</p>]):::last
+	__start__ --> s1_pull;
+	await_manager -.-> hold;
+	await_manager -. &nbsp;replan&nbsp; .-> s3_propose;
+	await_manager -. &nbsp;execute&nbsp; .-> s6_execute;
+	await_manager -.-> timeout;
+	escalate --> hold;
+	exception --> s3_propose;
+	hold --> s7_report;
+	s1_pull --> s2_validate;
+	s2_validate -.-> exception;
+	s2_validate -. &nbsp;propose&nbsp; .-> s3_propose;
+	s3_propose --> s4_guardrail;
+	s4_guardrail -.-> escalate;
+	s4_guardrail -. &nbsp;route&nbsp; .-> s5_route;
+	s5_route -. &nbsp;human&nbsp; .-> await_manager;
+	s5_route -.-> escalate;
+	s5_route -. &nbsp;execute&nbsp; .-> s6_execute;
+	s6_execute --> s7_report;
+	timeout --> hold;
+	s7_report --> __end__;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc

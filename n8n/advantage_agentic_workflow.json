@@ -1,0 +1,438 @@
+{
+  "name": "AdVantage Retail - Agentic Budget Operations",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "name": "Manual trigger (demo)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-640, 180]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [1],
+              "triggerAtHour": 9,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "Weekly trigger - Monday 09:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-640, 360]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Which cycle to run. Week 18 is the best demo: the Amazon feed is\n// missing that week, so exception path E2 fires.\nconst WEEK = 18;\n\nreturn [{ json: { week: WEEK, caseId: 'AD-' + String(WEEK).padStart(3, '0') } }];"
+      },
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "name": "Open case",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-420, 260]
+    },
+    {
+      "parameters": {
+        "url": "https://raw.githubusercontent.com/pkpiyush186-blip/advantage-agentic/main/data/run_agentic_process.csv",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "name": "S1 - Performance DB (tool call)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-200, 260]
+    },
+    {
+      "parameters": {
+        "jsCode": "// S1 - DATA MONITOR AGENT: pull last week reported metrics.\n// Falls back to the most recent valid week for any channel whose feed\n// did not arrive (exception path E2).\nconst CHANNELS = ['google', 'meta', 'amazon'];\nconst BUDGET = 1150000;\n\nconst csv = $input.first().json.data;\nconst lines = csv.trim().split('\\n');\nconst head = lines[0].split(',');\nconst rows = lines.slice(1).map(line => {\n  const cells = line.split(',');\n  const row = {};\n  head.forEach((h, i) => { row[h] = cells[i]; });\n  row.week = Number(row.week);\n  row.share = Number(row.share);\n  row.spend = Number(row.spend);\n  row.clicks = Number(row.clicks);\n  row.conversions = Number(row.conversions);\n  row.feed_missing = String(row.feed_missing).toLowerCase() === 'true';\n  return row;\n});\n\nconst week = $('Open case').first().json.week;\nconst reportedWeek = week - 1;\n\nconst metrics = {};\nconst missingFeeds = [];\nlet usedFallback = false;\n\nfor (const channel of CHANNELS) {\n  const thisWeek = rows.find(r => r.week === reportedWeek && r.channel === channel);\n  if (!thisWeek) continue;\n\n  if (thisWeek.feed_missing) {\n    missingFeeds.push(channel);\n    const fallback = rows\n      .filter(r => r.channel === channel && r.week < reportedWeek && !r.feed_missing && r.clicks > 0)\n      .sort((a, b) => a.week - b.week)\n      .pop();\n    if (fallback) {\n      usedFallback = true;\n      metrics[channel] = {\n        week: fallback.week,\n        cpc: fallback.spend / fallback.clicks,\n        cvr: fallback.conversions / fallback.clicks,\n        share: fallback.share,\n        conversions: fallback.conversions,\n        spend: fallback.spend,\n        stale: true\n      };\n    }\n    continue;\n  }\n\n  metrics[channel] = {\n    week: reportedWeek,\n    cpc: thisWeek.spend / thisWeek.clicks,\n    cvr: thisWeek.conversions / thisWeek.clicks,\n    share: thisWeek.share,\n    conversions: thisWeek.conversions,\n    spend: thisWeek.spend,\n    stale: false\n  };\n}\n\n// The split currently live is whatever ran last week.\nconst previousShares = {};\nfor (const channel of CHANNELS) {\n  const row = rows.find(r => r.week === reportedWeek && r.channel === channel);\n  previousShares[channel] = row ? row.share : 1 / 3;\n}\n\nconst audit = [{\n  stage: 'S1',\n  tool: 'performance_db',\n  summary: 'pulled week ' + reportedWeek + ' for ' + Object.keys(metrics).length +\n    ' channels' + (missingFeeds.length ? '; no feed from ' + missingFeeds.join(', ') : '')\n}];\n\nreturn [{ json: {\n  caseId: $('Open case').first().json.caseId,\n  week, reportedWeek, metrics, missingFeeds, usedFallback,\n  previousShares, history: rows, budget: BUDGET, audit, replans: 0\n} }];"
+      },
+      "id": "a1000000-0000-4000-8000-000000000005",
+      "name": "S1 - Parse and pull",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [20, 260]
+    },
+    {
+      "parameters": {
+        "jsCode": "// S2 - DATA MONITOR AGENT: validate and detect anomalies.\n//\n// A flag needs the move to be BOTH larger than a fixed percentage AND\n// unusual for that channel. Detection is on week-on-week CHANGE, not on\n// distance from a trailing average, because these channels trend by\n// design and a trend is not an anomaly.\nconst CHANNELS = ['google', 'meta', 'amazon'];\nconst CPC_SPIKE_PCT = 30, CVR_DROP_PCT = 30, LOOKBACK = 6;\nconst VOLATILITY_Z = 2.5, MIN_OBS = 3, ALPHA_HAT = 0.85;\nconst SHARE_REF = 1 / 3;\n\nconst d = $input.first().json;\nconst anomalies = [];\n\nfor (const channel of d.missingFeeds) {\n  anomalies.push({\n    channel, type: 'missing_feed', exception: 'E2',\n    detail: 'No data feed from ' + channel + ' for week ' + d.reportedWeek + '.'\n  });\n}\n\nconst median = xs => {\n  const s = [...xs].sort((a, b) => a - b);\n  const m = Math.floor(s.length / 2);\n  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;\n};\n\nfor (const channel of CHANNELS) {\n  if (d.missingFeeds.includes(channel) || !d.metrics[channel]) continue;\n\n  const window = d.history\n    .filter(r => r.channel === channel && r.week < d.reportedWeek &&\n                 r.week >= d.reportedWeek - LOOKBACK && !r.feed_missing && r.clicks > 0)\n    .sort((a, b) => a.week - b.week);\n  if (window.length < 2) continue;\n\n  // Observed conversion rate depends on how much was spent, because of\n  // diminishing returns. Normalise every week to an equal-split spend so\n  // our own budget moves do not look like channel anomalies. Observed CPC\n  // needs no correction - spend cancels out of it exactly.\n  const cpcSeries = window.map(r => r.spend / r.clicks);\n  const cvrSeries = window.map(r =>\n    (r.conversions / r.clicks) * Math.pow(r.share / SHARE_REF, 1 - ALPHA_HAT));\n\n  const current = d.metrics[channel];\n  const cvrNow = current.cvr * Math.pow(current.share / SHARE_REF, 1 - ALPHA_HAT);\n\n  const checks = [\n    { metric: 'cpc', value: current.cpc, series: cpcSeries, dir: 1,\n      type: 'cpc_spike', label: 'CPC up', fixed: CPC_SPIKE_PCT },\n    { metric: 'cvr', value: cvrNow, series: cvrSeries, dir: -1,\n      type: 'cvr_collapse', label: 'conversion rate down', fixed: CVR_DROP_PCT }\n  ];\n\n  for (const c of checks) {\n    const last = c.series[c.series.length - 1];\n    if (!last || last <= 0) continue;\n\n    const change = (c.value / last - 1) * 100;\n\n    const priorChanges = [];\n    for (let i = 1; i < c.series.length; i++) {\n      priorChanges.push((c.series[i] / c.series[i - 1] - 1) * 100);\n    }\n\n    let bar = c.fixed, typicalMove = 0;\n    if (priorChanges.length >= MIN_OBS) {\n      const mid = median(priorChanges);\n      const mad = median(priorChanges.map(x => Math.abs(x - mid)));\n      typicalMove = 1.4826 * mad;\n      bar = Math.max(c.fixed, VOLATILITY_Z * typicalMove);\n    }\n\n    if (c.dir * change >= bar) {\n      anomalies.push({\n        channel, type: c.type, exception: 'E1', change_pct: Math.round(change * 10) / 10,\n        detail: channel + ' ' + c.label + ' ' + Math.abs(change).toFixed(0) +\n          '% in one week, past the ' + bar.toFixed(0) + '% bar for this channel.'\n      });\n    }\n  }\n}\n\nconst degraded = d.missingFeeds.length > 0;\nconst audit = d.audit.concat([\n  { stage: 'S2', tool: 'policy_kb', summary: 'retrieved rulebook v1.0: 15%-55% per channel, 15 pp weekly cap' },\n  { stage: 'S2', tool: 'anomaly_checker', summary: anomalies.length ? anomalies.length + ' anomaly flag(s)' : 'no anomalies' },\n  { stage: 'D1', tool: 'decision', summary: anomalies.length ? 'D1 = exception path' : 'D1 = clean week, proceed to propose' }\n]);\n\nreturn [{ json: { ...d, anomalies, degraded, hasAnomaly: anomalies.length > 0, audit } }];"
+      },
+      "id": "a1000000-0000-4000-8000-000000000006",
+      "name": "S2 - Validate and detect",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 260]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-d1",
+              "leftValue": "={{ $json.hasAnomaly }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000007",
+      "name": "D1 - Anomaly?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [460, 260]
+    },
+    {
+      "parameters": {
+        "jsCode": "// E1 / E2 - ORCHESTRATOR: handle the exception before planning.\n//\n// E1  a channel behaving abnormally is FROZEN at its current share and the\n//     rest of the budget is re-planned around it.\n// E2  a missing feed puts the case in degraded mode, which halves the\n//     weekly shift cap, and queues a feed retry.\nconst d = $input.first().json;\nconst frozen = [];\nconst notes = [];\n\nfor (const a of d.anomalies) {\n  if (a.exception === 'E1') {\n    if (!frozen.includes(a.channel)) frozen.push(a.channel);\n    notes.push('E1: ' + a.detail + ' Holding ' + a.channel + ' at ' +\n      (d.previousShares[a.channel] * 100).toFixed(0) + '% and re-planning the rest.');\n  } else if (a.exception === 'E2') {\n    notes.push('E2: ' + a.detail + ' ' +\n      (d.usedFallback ? 'Using the last valid week. ' : 'No earlier valid week. ') +\n      'Case marked degraded, shift cap halved from 15 pp to 7.5 pp. Feed retry queued.');\n  }\n}\n\nconst audit = d.audit.concat([\n  { stage: 'EXC', tool: 'decision', summary: 'Exception path taken: ' + notes.join(' | ') },\n  { stage: 'EXC', tool: 'notifier', summary: 'notified marketing.manager@advantage.example: anomaly detected in week ' + d.week }\n]);\n\nreturn [{ json: { ...d, frozenChannels: frozen, escalations: notes, audit } }];"
+      },
+      "id": "a1000000-0000-4000-8000-000000000008",
+      "name": "E1/E2 - Handle exception",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 120]
+    },
+    {
+      "parameters": {
+        "jsCode": "// S3 - ALLOCATION AGENT (reinforcement learning).\n//\n// Discounted Thompson Sampling over a Gamma-Poisson model of conversions\n// per rupee. Conversions arrive as counts from spend, so the likelihood is\n// Poisson; the conjugate prior for a Poisson rate is Gamma, so the update\n// is exact arithmetic rather than a gradient step.\n//\n// discount = 0 means estimate from last week alone, which is what tuning\n// on eight separate training worlds chose: channel advantage rotates, so\n// older evidence is not merely less useful, it is misleading.\nconst CHANNELS = ['google', 'meta', 'amazon'];\nconst LAKH = 100000;\nconst CONCENTRATION = 3.0;\nconst DISCOUNT = 0.0;\nconst PRIOR_MEAN = 150, PRIOR_WEIGHT = 0.5;\nconst A0 = PRIOR_MEAN * PRIOR_WEIGHT, B0 = PRIOR_WEIGHT;\n\nconst d = $input.first().json;\n\n// Marsaglia-Tsang gamma sampler.\nfunction gammaSample(shape) {\n  if (shape < 1) {\n    return gammaSample(shape + 1) * Math.pow(Math.random(), 1 / shape);\n  }\n  const dd = shape - 1 / 3;\n  const c = 1 / Math.sqrt(9 * dd);\n  for (;;) {\n    let x, v;\n    do {\n      const u1 = Math.random(), u2 = Math.random();\n      x = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n      v = 1 + c * x;\n    } while (v <= 0);\n    v = v * v * v;\n    const u = Math.random();\n    if (u < 1 - 0.0331 * x * x * x * x) return dd * v;\n    if (Math.log(u) < 0.5 * x * x + dd * (1 - v + Math.log(v))) return dd * v;\n  }\n}\n\n// Build the posterior by replaying the reported weeks, decaying each time.\nconst posteriors = {};\nfor (const channel of CHANNELS) posteriors[channel] = { shape: A0, rate: B0 };\n\nconst weeks = [...new Set(d.history.filter(r => r.week < d.week).map(r => r.week))].sort((a, b) => a - b);\nfor (const w of weeks) {\n  for (const channel of CHANNELS) {\n    const p = posteriors[channel];\n    p.shape = A0 + DISCOUNT * (p.shape - A0);\n    p.rate = B0 + DISCOUNT * (p.rate - B0);\n  }\n  for (const channel of CHANNELS) {\n    const row = d.history.find(r => r.week === w && r.channel === channel);\n    if (!row || row.feed_missing) continue;\n    posteriors[channel].shape += row.conversions;\n    posteriors[channel].rate += row.spend / LAKH;\n  }\n}\n\n// Thompson Sampling: one draw per channel, act as if it were the truth.\nconst sampled = {};\nfor (const channel of CHANNELS) {\n  const p = posteriors[channel];\n  sampled[channel] = gammaSample(p.shape) / p.rate;\n}\n\nconst weights = {};\nlet totalWeight = 0;\nfor (const channel of CHANNELS) {\n  weights[channel] = Math.pow(Math.max(sampled[channel], 1e-9), CONCENTRATION);\n  totalWeight += weights[channel];\n}\n\nlet target = {};\nfor (const channel of CHANNELS) target[channel] = weights[channel] / totalWeight;\n\n// A rejection on a previous attempt pulls the re-plan back towards the\n// status quo (exception path E4).\nif (d.rejected) {\n  const w = 0.5;\n  let sum = 0;\n  for (const channel of CHANNELS) {\n    target[channel] = (1 - w) * target[channel] + w * d.previousShares[channel];\n    sum += target[channel];\n  }\n  for (const channel of CHANNELS) target[channel] /= sum;\n}\n\n// A frozen channel does not move; the rest share what is left.\nconst frozen = d.frozenChannels || [];\nif (frozen.length) {\n  const held = {};\n  let heldTotal = 0;\n  for (const channel of frozen) { held[channel] = d.previousShares[channel]; heldTotal += held[channel]; }\n  const movable = CHANNELS.filter(c => !frozen.includes(c));\n  const freeWeight = movable.reduce((s, c) => s + target[c], 0);\n  const out = { ...held };\n  for (const channel of movable) out[channel] = (1 - heldTotal) * target[channel] / freeWeight;\n  target = out;\n}\n\nconst posteriorMeans = {};\nfor (const channel of CHANNELS) {\n  posteriorMeans[channel] = Math.round(posteriors[channel].shape / posteriors[channel].rate * 10) / 10;\n}\n\nconst audit = d.audit.concat([{\n  stage: 'S3', tool: 'allocator',\n  summary: 'Thompson Sampling proposed ' +\n    CHANNELS.map(c => c + ' ' + (target[c] * 100).toFixed(0) + '%').join(', ')\n}]);\n\nreturn [{ json: { ...d, target, posteriorMeans, sampled, audit } }];"
+      },
+      "id": "a1000000-0000-4000-8000-000000000009",
+      "name": "S3 - Propose allocation (RL)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 260]
+    },
+    {
+      "parameters": {
+        "jsCode": "// S4 - GUARDRAIL AGENT. Deterministic, no model anywhere in it.\n//\n// The agent that proposes an allocation is never the agent that approves\n// it. This checks the proposal against the rulebook and projects it onto\n// the nearest compliant split that still sums to the whole budget. If no\n// compliant split exists the week is infeasible and a human decides (E3).\nconst CHANNELS = ['google', 'meta', 'amazon'];\nconst MIN_SHARE = 0.15, MAX_SHARE = 0.55, MAX_SHIFT_PP = 15;\nconst BRAND_RULES = [{ id: 'BR02', channel: 'amazon', maxShare: 0.50 }];\nconst MATERIAL_TRIM_PP = 1.0;\n\nconst d = $input.first().json;\nconst degraded = d.degraded;\nconst cap = (MAX_SHIFT_PP / 100) * (degraded ? 0.5 : 1);\nconst frozen = d.frozenChannels || [];\n\n// Effective floor and ceiling per channel.\nconst lo = {}, hi = {}, sources = ['hard_limits'];\nfor (const channel of CHANNELS) { lo[channel] = MIN_SHARE; hi[channel] = MAX_SHARE; }\nfor (const rule of BRAND_RULES) {\n  hi[rule.channel] = Math.min(hi[rule.channel], rule.maxShare);\n  sources.push(rule.id);\n}\nif (degraded) sources.push('degraded_mode');\nfor (const channel of CHANNELS) {\n  lo[channel] = Math.max(lo[channel], d.previousShares[channel] - cap);\n  hi[channel] = Math.min(hi[channel], d.previousShares[channel] + cap);\n}\nsources.push('weekly_shift_cap');\nfor (const channel of frozen) { lo[channel] = hi[channel] = d.previousShares[channel]; }\nfor (const channel of CHANNELS) { if (lo[channel] > hi[channel]) lo[channel] = hi[channel]; }\n\nconst floorSum = CHANNELS.reduce((s, c) => s + lo[c], 0);\nconst ceilSum = CHANNELS.reduce((s, c) => s + hi[c], 0);\nconst feasible = floorSum <= 1 + 1e-9 && ceilSum >= 1 - 1e-9;\n\n// Record what the proposal broke before anything is changed.\nconst violations = [];\nfor (const channel of CHANNELS) {\n  const share = d.target[channel];\n  if (share < MIN_SHARE - 1e-9) violations.push(channel + ' at ' + (share * 100).toFixed(1) + '% is below the 15% floor.');\n  if (share > MAX_SHARE + 1e-9) violations.push(channel + ' at ' + (share * 100).toFixed(1) + '% exceeds the 55% ceiling.');\n  for (const rule of BRAND_RULES) {\n    if (rule.channel === channel && share > rule.maxShare + 1e-9) {\n      violations.push(rule.id + ': ' + channel + ' at ' + (share * 100).toFixed(1) + '% exceeds the ' + (rule.maxShare * 100).toFixed(0) + '% brand cap.');\n    }\n  }\n  const moved = Math.abs(share - d.previousShares[channel]) * 100;\n  if (moved > cap * 100 + 1e-6) {\n    violations.push(channel + ' moves ' + moved.toFixed(1) + ' pp, above the ' + (cap * 100).toFixed(1) + ' pp cap.');\n  }\n}\n\n// Project onto the feasible set: clip, then redistribute the remainder in\n// proportion to the headroom each channel still has.\nlet proposal = {};\nlet trimNotes = [];\nif (feasible) {\n  for (const channel of CHANNELS) {\n    proposal[channel] = Math.min(Math.max(d.target[channel], lo[channel]), hi[channel]);\n  }\n  for (let iteration = 0; iteration < 200; iteration++) {\n    const total = CHANNELS.reduce((s, c) => s + proposal[c], 0);\n    const residual = 1 - total;\n    if (Math.abs(residual) < 1e-12) break;\n    const headroom = {};\n    let available = 0;\n    for (const channel of CHANNELS) {\n      headroom[channel] = residual > 0 ? hi[channel] - proposal[channel] : proposal[channel] - lo[channel];\n      if (headroom[channel] > 0) available += headroom[channel];\n    }\n    if (available <= 1e-15) break;\n    for (const channel of CHANNELS) {\n      if (headroom[channel] > 0) proposal[channel] += residual * headroom[channel] / available;\n      proposal[channel] = Math.min(Math.max(proposal[channel], lo[channel]), hi[channel]);\n    }\n  }\n  for (const channel of CHANNELS) {\n    const delta = (proposal[channel] - d.target[channel]) * 100;\n    if (Math.abs(delta) > 0.05) {\n      trimNotes.push(channel + ' trimmed by ' + (delta >= 0 ? '+' : '') + delta.toFixed(1) +\n        ' pp to satisfy ' + sources.join(', ') + '.');\n    }\n  }\n} else {\n  proposal = { ...d.previousShares };\n  trimNotes.push('No compliant split exists: floors sum to ' + (floorSum * 100).toFixed(1) +\n    '% and ceilings to ' + (ceilSum * 100).toFixed(1) + '%.');\n}\n\nconst trimmedPp = Math.max(...CHANNELS.map(c => Math.abs(proposal[c] - d.target[c]) * 100));\nconst wasTrimmed = trimmedPp >= MATERIAL_TRIM_PP;\n\nconst audit = d.audit.concat([\n  { stage: 'S4', tool: 'constraint_calculator',\n    summary: violations.length\n      ? violations.length + ' violation(s), trimmed to ' + CHANNELS.map(c => c + ' ' + (proposal[c] * 100).toFixed(0) + '%').join(', ')\n      : 'proposal already compliant' },\n  { stage: 'D2', tool: 'decision',\n    summary: feasible ? 'D2 = compliant after check' : 'D2 = infeasible, escalating (E3)' }\n]);\n\nreturn [{ json: { ...d, proposal, feasible, violations, trimNotes, wasTrimmed, audit } }];"
+      },
+      "id": "a1000000-0000-4000-8000-000000000010",
+      "name": "S4 - Guardrail check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 260]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-d2",
+              "leftValue": "={{ $json.feasible }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000011",
+      "name": "D2 - Compliant?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1340, 260]
+    },
+    {
+      "parameters": {
+        "jsCode": "// S5 - REPORTING AGENT: decide the autonomy level for this cycle and\n// write the manager brief.\n//\n// Approval is required when the shift exceeds 5 pp, an anomaly is flagged,\n// the proposal was materially trimmed, the week is running on stale data,\n// OR the manager has already overridden this cycle. That last rule exists\n// because without it the agent can answer a rejection with something small\n// enough to slip under the threshold and move the budget without asking.\nconst CHANNELS = ['google', 'meta', 'amazon'];\nconst AUTO_EXECUTE_MAX_PP = 5, SLA_HOURS = 48;\nconst ESCALATE_TO = 'Senior Marketing Head';\n\nconst d = $input.first().json;\n\nconst shiftPp = Math.max(...CHANNELS.map(c =>\n  Math.abs(d.proposal[c] - d.previousShares[c]) * 100));\n\nconst reasons = [];\nif (shiftPp > AUTO_EXECUTE_MAX_PP + 1e-6) {\n  reasons.push('largest shift ' + shiftPp.toFixed(1) + ' pp is above the ' + AUTO_EXECUTE_MAX_PP + ' pp auto-execute threshold');\n}\nif (d.anomalies.length) {\n  reasons.push('anomaly flagged on ' + [...new Set(d.anomalies.map(a => a.channel))].join(', '));\n}\nif (d.wasTrimmed) reasons.push('proposal was trimmed by the guardrail agent');\nif (d.degraded) reasons.push('the week is running on stale or incomplete data');\nif (d.replans > 0) reasons.push('the manager has already overridden this cycle');\n\nconst route = reasons.length ? 'approve' : 'auto_execute';\n\nconst lines = [];\nlines.push('Week ' + d.week + ' budget recommendation (' + d.caseId + ')');\nlines.push('');\nlines.push('Total for the week: Rs ' + d.budget.toLocaleString('en-IN'));\nlines.push('');\nlines.push('Proposed split:');\nfor (const channel of CHANNELS) {\n  const was = d.previousShares[channel] * 100, now = d.proposal[channel] * 100;\n  lines.push('  ' + channel.padEnd(8) + (was.toFixed(1) + '%').padStart(7) + ' -> ' +\n    (now.toFixed(1) + '%').padStart(7) + '  (' + (now - was >= 0 ? '+' : '') +\n    (now - was).toFixed(1) + ' pp)   recent performance ' + d.posteriorMeans[channel] + ' conversions per lakh');\n}\nlines.push('');\nlines.push('Largest move: ' + shiftPp.toFixed(1) + ' pp (auto-execute threshold is ' + AUTO_EXECUTE_MAX_PP + ' pp).');\nif (d.anomalies.length) {\n  lines.push('');\n  lines.push('Flagged this week:');\n  for (const a of d.anomalies) lines.push('  - ' + a.detail);\n}\nif (d.frozenChannels && d.frozenChannels.length) {\n  lines.push('  - Held frozen: ' + d.frozenChannels.join(', ') + '.');\n}\nif (d.wasTrimmed) {\n  lines.push('');\n  lines.push('Guardrail adjustments:');\n  for (const n of d.trimNotes) lines.push('  - ' + n);\n}\nif (reasons.length) {\n  lines.push('');\n  lines.push('Why this needs your approval:');\n  for (const r of reasons) lines.push('  - ' + r);\n}\nlines.push('');\nlines.push('Reply approve / modify / reject within ' + SLA_HOURS + 'h, after which this escalates to ' +\n  ESCALATE_TO + ' and the current split is held.');\n\nconst brief = lines.join('\\n');\n\nconst audit = d.audit.concat([\n  { stage: 'S5', tool: 'decision', summary: 'S5 route = ' + route + (reasons.length ? ' because ' + reasons.join('; ') : ' (within all thresholds)') }\n].concat(route === 'approve'\n  ? [{ stage: 'S5', tool: 'notifier', summary: 'notified marketing.manager@advantage.example: approval needed (' + shiftPp.toFixed(1) + ' pp shift)' }]\n  : []));\n\nreturn [{ json: { ...d, shiftPp, route, approvalReasons: reasons, brief, needsApproval: route === 'approve', audit } }];"
+      },
+      "id": "a1000000-0000-4000-8000-000000000012",
+      "name": "S5 - Route for approval",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 260]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-d3",
+              "leftValue": "={{ $json.needsApproval }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000013",
+      "name": "D3 - Needs a human?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1780, 260]
+    },
+    {
+      "parameters": {
+        "resume": "form",
+        "formTitle": "Weekly budget approval",
+        "formDescription": "={{ $json.brief }}",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Decision",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  { "option": "approve" },
+                  { "option": "reject" },
+                  { "option": "timeout" }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Note",
+              "fieldType": "text"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000014",
+      "name": "Await manager decision",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [2000, 140],
+      "webhookId": "a1000000-0000-4000-8000-0000000000aa"
+    },
+    {
+      "parameters": {
+        "jsCode": "// E4 / E5 - ORCHESTRATOR: act on what the manager said.\n//\n// approve  execute it\n// reject   log the override and RE-PLAN (loops back to S3) with the\n//          rejection as a new constraint, up to max_replans\n// timeout  no reply within the SLA, so remind, escalate and hold\nconst MAX_REPLANS = 2;\n\nconst form = $input.first().json;\nconst d = $('S5 - Route for approval').first().json;\n\nconst decision = (form.Decision || form.decision || 'approve').toLowerCase();\nconst note = form.Note || form.note || '';\nconst replans = d.replans || 0;\n\nlet next, audit = d.audit.concat([\n  { stage: 'S5', tool: 'decision', summary: 'Manager decision: ' + decision + (note ? '. ' + note : '') }\n]);\n\nif (decision === 'timeout') {\n  next = 'hold';\n  audit = audit.concat([\n    { stage: 'E5', tool: 'notifier', summary: 'reminder sent: approval outstanding for 48h' },\n    { stage: 'E5', tool: 'notifier', summary: 'escalated to Senior Marketing Head' },\n    { stage: 'E5', tool: 'decision', summary: 'E5: SLA breached, holding the previous allocation' }\n  ]);\n} else if (decision === 'reject') {\n  if (replans >= MAX_REPLANS) {\n    next = 'hold';\n    audit = audit.concat([{ stage: 'E4', tool: 'decision', summary: 'E4: ' + replans + ' re-plans already, holding rather than looping' }]);\n  } else {\n    next = 'replan';\n    audit = audit.concat([{ stage: 'E4', tool: 'decision', summary: 'E4: rejection logged and fed back as a constraint; re-planning S3-S5 (attempt ' + (replans + 1) + ')' }]);\n  }\n} else {\n  next = 'execute';\n}\n\nreturn [{ json: {\n  ...d, managerDecision: decision, managerNote: note,\n  replans: next === 'replan' ? replans + 1 : replans,\n  rejected: next === 'replan', next, audit\n} }];"
+      },
+      "id": "a1000000-0000-4000-8000-000000000015",
+      "name": "E4/E5 - Manager decision",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2220, 140]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 2 },
+                "conditions": [
+                  {
+                    "id": "r-execute",
+                    "leftValue": "={{ $json.next }}",
+                    "rightValue": "execute",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "execute"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 2 },
+                "conditions": [
+                  {
+                    "id": "r-replan",
+                    "leftValue": "={{ $json.next }}",
+                    "rightValue": "replan",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "replan (E4)"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 2 },
+                "conditions": [
+                  {
+                    "id": "r-hold",
+                    "leftValue": "={{ $json.next }}",
+                    "rightValue": "hold",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "hold (E5)"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000016",
+      "name": "Route the decision",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [2440, 140]
+    },
+    {
+      "parameters": {
+        "jsCode": "// E3 - escalate: nothing complies, so a human decides. The agent does\n// not guess, and it holds the previous allocation meanwhile.\nconst d = $input.first().json;\nconst audit = d.audit.concat([\n  { stage: 'E3', tool: 'notifier', summary: 'escalated to Senior Marketing Head: no compliant allocation exists for this week' }\n]);\nreturn [{ json: { ...d, status: 'escalated', next: 'hold', escalations: (d.escalations || []).concat(['E3: no compliant allocation exists for this week']), audit } }];"
+      },
+      "id": "a1000000-0000-4000-8000-000000000017",
+      "name": "E3 - Escalate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 460]
+    },
+    {
+      "parameters": {
+        "jsCode": "// S6 - execute the approved split through the budget API.\nconst CHANNELS = ['google', 'meta', 'amazon'];\nconst d = $input.first().json;\n\nconst amounts = {};\nfor (const channel of CHANNELS) {\n  amounts[channel] = Math.round(d.proposal[channel] * d.budget);\n}\n\nconst audit = d.audit.concat([{\n  stage: 'S6', tool: 'budget_api',\n  summary: 'executed ' + CHANNELS.map(c => c + ' Rs ' + amounts[c].toLocaleString('en-IN')).join(', ')\n}]);\n\nreturn [{ json: { ...d, executed: d.proposal, amounts, status: 'executed', audit } }];"
+      },
+      "id": "a1000000-0000-4000-8000-000000000018",
+      "name": "S6 - Execute budget",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2660, 40]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Hold: the safe fallback. No budget moves.\nconst CHANNELS = ['google', 'meta', 'amazon'];\nconst d = $input.first().json;\n\nconst amounts = {};\nfor (const channel of CHANNELS) {\n  amounts[channel] = Math.round(d.previousShares[channel] * d.budget);\n}\n\nconst audit = d.audit.concat([{\n  stage: 'HOLD', tool: 'decision',\n  summary: 'Holding last week allocation unchanged. No budget moved.'\n}]);\n\nreturn [{ json: { ...d, executed: d.previousShares, amounts, status: d.status === 'escalated' ? 'escalated' : 'held', audit } }];"
+      },
+      "id": "a1000000-0000-4000-8000-000000000019",
+      "name": "Hold previous split",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2660, 340]
+    },
+    {
+      "parameters": {
+        "jsCode": "// S7 - feedback, audit log and the weekly report.\nconst CHANNELS = ['google', 'meta', 'amazon'];\nconst d = $input.first().json;\n\nconst moves = CHANNELS.map(c =>\n  c + ' ' + (d.previousShares[c] * 100).toFixed(0) + '% -> ' + (d.executed[c] * 100).toFixed(0) + '%'\n).join(', ');\n\nconst report = [];\nreport.push('Week ' + d.week + ' (' + d.caseId + ') - ' + d.status);\nreport.push('Allocation: ' + moves);\nif (d.anomalies.length) report.push('Anomalies: ' + d.anomalies.map(a => a.detail).join('; '));\nif (d.wasTrimmed) report.push('Guardrail: ' + d.trimNotes.join(' '));\nif (d.approvalReasons && d.approvalReasons.length) report.push('Approval: ' + d.approvalReasons.join('; '));\nif (d.escalations && d.escalations.length) report.push('Escalations: ' + d.escalations.join(' | '));\n\nconst audit = d.audit.concat([{\n  stage: 'S7', tool: 'audit_logger', summary: 'Case closed as ' + d.status + '.'\n}]);\n\nreturn [{ json: {\n  caseId: d.caseId,\n  week: d.week,\n  status: d.status,\n  route: d.route,\n  managerDecision: d.managerDecision || 'not required',\n  replans: d.replans,\n  shiftPp: d.shiftPp ? Number(d.shiftPp.toFixed(1)) : 0,\n  anomalies: d.anomalies,\n  frozenChannels: d.frozenChannels || [],\n  degraded: d.degraded,\n  executed: d.executed,\n  amounts: d.amounts,\n  weeklyReport: report.join('\\n'),\n  brief: d.brief,\n  toolCalls: audit.filter(a => a.tool !== 'decision').length,\n  auditTrail: audit\n} }];"
+      },
+      "id": "a1000000-0000-4000-8000-000000000020",
+      "name": "S7 - Report and audit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2880, 180]
+    }
+  ],
+  "connections": {
+    "Manual trigger (demo)": {
+      "main": [[{ "node": "Open case", "type": "main", "index": 0 }]]
+    },
+    "Weekly trigger - Monday 09:00": {
+      "main": [[{ "node": "Open case", "type": "main", "index": 0 }]]
+    },
+    "Open case": {
+      "main": [[{ "node": "S1 - Performance DB (tool call)", "type": "main", "index": 0 }]]
+    },
+    "S1 - Performance DB (tool call)": {
+      "main": [[{ "node": "S1 - Parse and pull", "type": "main", "index": 0 }]]
+    },
+    "S1 - Parse and pull": {
+      "main": [[{ "node": "S2 - Validate and detect", "type": "main", "index": 0 }]]
+    },
+    "S2 - Validate and detect": {
+      "main": [[{ "node": "D1 - Anomaly?", "type": "main", "index": 0 }]]
+    },
+    "D1 - Anomaly?": {
+      "main": [
+        [{ "node": "E1/E2 - Handle exception", "type": "main", "index": 0 }],
+        [{ "node": "S3 - Propose allocation (RL)", "type": "main", "index": 0 }]
+      ]
+    },
+    "E1/E2 - Handle exception": {
+      "main": [[{ "node": "S3 - Propose allocation (RL)", "type": "main", "index": 0 }]]
+    },
+    "S3 - Propose allocation (RL)": {
+      "main": [[{ "node": "S4 - Guardrail check", "type": "main", "index": 0 }]]
+    },
+    "S4 - Guardrail check": {
+      "main": [[{ "node": "D2 - Compliant?", "type": "main", "index": 0 }]]
+    },
+    "D2 - Compliant?": {
+      "main": [
+        [{ "node": "S5 - Route for approval", "type": "main", "index": 0 }],
+        [{ "node": "E3 - Escalate", "type": "main", "index": 0 }]
+      ]
+    },
+    "E3 - Escalate": {
+      "main": [[{ "node": "Hold previous split", "type": "main", "index": 0 }]]
+    },
+    "S5 - Route for approval": {
+      "main": [[{ "node": "D3 - Needs a human?", "type": "main", "index": 0 }]]
+    },
+    "D3 - Needs a human?": {
+      "main": [
+        [{ "node": "Await manager decision", "type": "main", "index": 0 }],
+        [{ "node": "S6 - Execute budget", "type": "main", "index": 0 }]
+      ]
+    },
+    "Await manager decision": {
+      "main": [[{ "node": "E4/E5 - Manager decision", "type": "main", "index": 0 }]]
+    },
+    "E4/E5 - Manager decision": {
+      "main": [[{ "node": "Route the decision", "type": "main", "index": 0 }]]
+    },
+    "Route the decision": {
+      "main": [
+        [{ "node": "S6 - Execute budget", "type": "main", "index": 0 }],
+        [{ "node": "S3 - Propose allocation (RL)", "type": "main", "index": 0 }],
+        [{ "node": "Hold previous split", "type": "main", "index": 0 }]
+      ]
+    },
+    "S6 - Execute budget": {
+      "main": [[{ "node": "S7 - Report and audit", "type": "main", "index": 0 }]]
+    },
+    "Hold previous split": {
+      "main": [[{ "node": "S7 - Report and audit", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "advantage-agentic-mba-group5"
+  },
+  "tags": []
+}
